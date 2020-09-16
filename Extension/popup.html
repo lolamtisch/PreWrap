@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+    <head>
+    </head>
+    <body style="width: 250px;">
+        <div id="app">
+            <div class="perm" v-if="missingPermissions.length || sync.missingIframes.length">
+                <h1>Missing Permissions</h1>
+                <div v-if="sync.missingIframes.length">
+                    <h3>Iframes</h3>
+                    <div v-for="iframe in sync.missingIframes" :key="iframe">
+                        {{iframe}} <span @click="blockIframe(iframe)">X</span>
+                    </div>
+                </div>
+
+                <div class="missingPermission" v-if="missingPermissions.length || sync.missingIframes.length">
+                    <button id="request" @click="requestPermissions">Request Permissions</button>
+                </div>
+                <hr>
+            </div>
+            <div class="matched">
+                <div v-if="!matchedPages.length">No presence for this page found</div>
+                <div v-for="page in matchedPages" :key="page.service" @click="togglePage(page)">
+                    <span v-if="activePages.isPageActive(page)">active</span>
+                    <img :src="page.logo" height="15" width="15">
+                    {{page.service}}
+                </div>
+            </div>
+        </div>
+        <script src="./vendor/vue.js"></script>
+        <script src="./Pages/pages.js"></script>
+        <script src="./popup.js"></script>
+    </body>
+</html>
