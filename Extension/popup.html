@@ -5,6 +5,14 @@
         <div id="app">
             <div class="perm" v-if="missingPermissions.length || sync.missingIframes.length">
                 <h1>Missing Permissions</h1>
+                <div v-if="missingPermissions.length">
+                    <h3>Pages</h3>
+                    <div v-for="iframe in missingPermissions" :key="iframe">
+                        {{iframe}}
+                    </div>
+                    <br>
+                </div>
+
                 <div v-if="sync.missingIframes.length">
                     <h3>Iframes</h3>
                     <div v-for="iframe in sync.missingIframes" :key="iframe">

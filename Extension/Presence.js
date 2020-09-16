@@ -98,7 +98,7 @@ chrome.runtime.onMessage.addListener(function (info, sender, sendResponse) {
 });
 
 setTimeout(() => {
-    if (checkIframe) {
+    if (typeof checkIframe !== 'undefined' && checkIframe) {
         frames = document.getElementsByTagName("iframe");
         console.log('Frames found', frames.length);
         var urlsD = [];

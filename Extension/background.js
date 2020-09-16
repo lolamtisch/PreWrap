@@ -23,6 +23,7 @@ async function initWebNavigationListener() {
         chrome.webNavigation.onCompleted.removeListener(iframeNavigationListener);
         var config = await getIframeFilter();
         console.log("Add Iframe navigation listener", config);
+        if (!config.length) return;
         chrome.webNavigation.onCompleted.addListener(iframeNavigationListener, { url: config });
     }
 
@@ -39,7 +40,7 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
         storageChange.oldValue,
         storageChange.newValue
         );
-        if (namespace === 'sync' && key === 'activePages') {
+        if (namespace === 'sync' && (key === 'activePages' || key === 'allowedIframes')) {
             initWebNavigationListener();
         }
     }
