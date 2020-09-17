@@ -43,6 +43,9 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
         if (namespace === 'sync' && (key === 'activePages' || key === 'allowedIframes')) {
             initWebNavigationListener();
         }
+        if (key === "missingPermissions" || key === "missingIframes") {
+            setBadge();
+        }
     }
 });
 
@@ -250,5 +253,21 @@ function checkIframeDomains(domains) {
         })
 
         chrome.storage.sync.set({ missingIframes: missing });
+    });
+}
+
+setBadge();
+function setBadge() {
+    let miss = false;
+    chrome.storage.sync.get("missingIframes", (obj) => {
+        if (obj.missingIframes && obj.missingIframes.length) miss = true;
+        chrome.storage.local.get("missingPermissions", (obj) => {
+            if (obj.missingPermissions && obj.missingPermissions.length) miss = true;
+            if (miss){
+                chrome.browserAction.setBadgeText({ text: "❌" });
+            } else {
+                chrome.browserAction.setBadgeText({ text: "" });
+            }
+        });
     });
 }
