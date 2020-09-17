@@ -98,6 +98,13 @@ chrome.runtime.onMessage.addListener(function (info, sender, sendResponse) {
 });
 
 setTimeout(() => {
+    setInterval(() => {
+        checkForIframes();
+    }, 3 * 60 * 1000);
+    checkForIframes();
+}, 10000);
+
+function checkForIframes() {
     if (typeof checkIframe !== 'undefined' && checkIframe) {
         frames = document.getElementsByTagName("iframe");
         console.log('Frames found', frames.length);
@@ -116,7 +123,7 @@ setTimeout(() => {
             },
         });
     }
-}, 10000);
+}
 
 // https://api.premid.app/v2/langFile/extension/en
 var language = {
