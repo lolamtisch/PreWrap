@@ -85,11 +85,21 @@ class Presence {
 
 chrome.runtime.onMessage.addListener(function (info, sender, sendResponse) {
     if (info.type === 'presence') {
-        console.log("Presence requested", info);
-        activePresence.callEvent();
-        setTimeout(() => {
-            sendResponse(activePresence.getPresence(info.data.active));
-        }, 500);
+        try{
+            console.log("Presence requested", info);
+            activePresence.callEvent();
+            setTimeout(() => {
+                try {
+                    sendResponse(activePresence.getPresence(info.data.active));
+                } catch (e) {
+                    console.error("Activity error", e);
+                    sendResponse({});
+                }
+            }, 500);
+        } catch(e) {
+            console.error('Presence error', e);
+            sendResponse({});
+        }
         return true;
     } else if (info.type === "iframeDataEvent") {
         activePresence.callIframeEvent(info.data);
