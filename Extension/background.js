@@ -256,6 +256,36 @@ function checkIframeDomains(domains) {
     });
 }
 
+checkForMissingPermissions();
+function checkForMissingPermissions() {
+    iframePermCheck();
+    function iframePermCheck() {
+        chrome.storage.sync.get(["allowedIframes", "missingIframes"], (res) => {
+            var allowed = [];
+            var missing = [];
+            if (res.allowedIframes && Object.values(res.allowedIframes).length) {
+                allowed = res.allowedIframes;
+            }
+            if (res.missingIframes && Object.values(res.missingIframes).length) {
+                missing = res.missingIframes;
+            }
+
+            Promise.all(allowed.map(al => {
+                return new Promise((resolve) => {
+                    chrome.permissions.contains({ origins: [al] }, (perm) => {
+                        if (!perm && !missing.includes(al)) {
+                            missing.push(al);
+                            resolve();
+                        }
+                    });
+                })
+            })).then(() => {
+                chrome.storage.sync.set({ missingIframes: missing });
+            })
+        });
+    }
+}
+
 setBadge();
 function setBadge() {
     let miss = false;
