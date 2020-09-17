@@ -1,10 +1,74 @@
 <!DOCTYPE html>
     <head>
+        <style >
+            body {
+                margin: 0;
+                background-color: #208EF1;
+                color: white;
+                text-align: center;
+                /*Secondary #4EAFF7*/
+            }
+            h2 {
+                background-color: #4eaff7;
+                text-align: center;
+                margin-top: 0;
+                padding-bottom: 2px;
+            }
+            .header {
+                border-bottom: 5px solid #4EAFF7;
+                padding: 5px 15px;
+                display: flex;
+                justify-content: space-between;
+            }
+            .box {
+                border-bottom: 5px solid #4EAFF7;
+                border-radius: 20px;
+                padding: 10px 15px;
+            }
+            .matched {
+                border-bottom: 5px solid #4EAFF7;
+                padding: 10px 15px;
+            }
+            .page-box {
+                border: 5px solid #4EAFF7;
+                border-radius: 20px;
+                display: flex;
+                justify-content: space-between;
+                min-height: 30px;
+                align-items: center;
+                transition: 0.5s border-color;
+            }
+                .page-box.active {
+                    border-color: #4ee7f7;
+                }
+                .page-box .checkbox{
+                    width: 25px;
+                }
+                .page-box .img{
+                    width: 25px;
+                }
+                    .page-box .img img{
+                        display: block;
+                        max-height: 25px;
+                    }
+                .page-box .text{
+                    flex-grow: 1;
+                    text-align: left;
+                    padding: 5px 10px;
+                }
+
+        </style>
     </head>
     <body style="width: 250px;">
         <div id="app">
-            <div class="perm" v-if="missingPermissions.length || sync.missingIframes.length">
-                <h1>Missing Permissions</h1>
+            <div class="header">
+                <a>Home</a>
+                <a>Active</a>
+                <a>Blocked</a>
+                <a>Search</a>
+            </div>
+            <div class="perm box" v-if="missingPermissions.length || sync.missingIframes.length">
+                <h2>Missing Permissions</h2>
                 <div v-if="missingPermissions.length">
                     <h3>Pages</h3>
                     <div v-for="iframe in missingPermissions" :key="iframe">
@@ -23,14 +87,19 @@
                 <div class="missingPermission" v-if="missingPermissions.length || sync.missingIframes.length">
                     <button id="request" @click="requestPermissions">Request Permissions</button>
                 </div>
-                <hr>
             </div>
             <div class="matched">
                 <div v-if="!matchedPages.length">No presence for this page found</div>
-                <div v-for="page in matchedPages" :key="page.service" @click="togglePage(page)">
-                    <span v-if="activePages.isPageActive(page)">active</span>
-                    <img :src="page.logo" height="15" width="15">
-                    {{page.service}}
+                <div class="page-box" v-for="page in matchedPages" :key="page.service" @click="togglePage(page)" :class="{active: activePages.isPageActive(page)}">
+                    <div class="checkbox">
+                        <span v-if="activePages.isPageActive(page)">active</span>
+                    </div>
+                    <div class="img">
+                        <img :src="page.logo" width="25">
+                    </div>
+                    <div class="text">
+                        {{page.service}}
+                    </div>
                 </div>
             </div>
         </div>
