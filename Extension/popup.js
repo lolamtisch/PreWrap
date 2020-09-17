@@ -1,10 +1,12 @@
 var app = new Vue({
     el: "#app",
     data: {
+        active: 'home',
         pages: pages,
         matchedPages: [],
         activePages: { pages: {} },
         missingPermissions: [],
+        searchWord: '',
         currentTabUrl: '',
         currentTabId: 0,
         sync: {
@@ -67,6 +69,18 @@ var app = new Vue({
                 chrome.storage.sync.set(value);
             },
             deep: true
+        }
+    },
+    computed: {
+        enabledPages() {
+            var ac = Object.keys(this.activePages.pages);
+            if (!ac.length) return [];
+            return this.pages.filter((p) => ac.includes(p.service));
+        },
+        filteredPages() {
+            return this.pages.filter((p) => {
+                return p.service.toLowerCase().includes(this.searchWord.toLowerCase());
+            });
         }
     },
     methods: {
