@@ -65,6 +65,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                 if (accepted) {
                     if (request.data.sync) chrome.storage.sync.set(request.data.sync);
                     if (request.data.local) chrome.storage.local.set(request.data.local);
+                    if (request.data.permissions.origins) reloadTabsByOrigin(request.data.permissions.origins);
                 }
             });
             break;
@@ -73,6 +74,15 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             throw 'Unknown request'
     }
 });
+
+function reloadTabsByOrigin(origins) {
+    chrome.tabs.query({ url: origins.map(el => el+'*')}, (tabs) => {
+        console.log('Reload tabs', tabs);
+        tabs.forEach(tab => {
+            chrome.tabs.reload(tab.id);
+        })
+    });
+}
 
 function getFilter() {
     return new Promise((resolve) => {
