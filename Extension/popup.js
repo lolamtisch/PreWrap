@@ -71,42 +71,36 @@ var app = new Vue({
     },
     methods: {
         requestPermissions() {
-            return new Promise((resolve, reject) => {
-                chrome.permissions.request(
-                    { origins: this.missingPermissions.concat(this.sync.missingIframes) },
-                    (accepted) => {
-                        console.log("Permissions accepted", accepted);
-                        if (accepted) {
-                            chrome.storage.local.set({ missingPermissions: [] });
-                            this.sync.allowedIframes = this.sync.allowedIframes.concat(this.sync.missingIframes);
-                            this.sync.missingIframes = [];
-                        }
-                        resolve(accepted);
-                    }
-                );
-            })
-
+            chrome.runtime.sendMessage({ type: "requestPermissions", data: {
+                permissions: { origins: this.missingPermissions.concat(this.sync.missingIframes) },
+                sync: {
+                    allowedIframes: this.sync.allowedIframes.concat(this.sync.missingIframes),
+                    missingIframes: []
+                },
+                local: {
+                    missingPermissions: [],
+                }
+            } });
         },
         togglePage(meta) {
             this.activePages.togglePage(meta);
 
             if (this.activePages.isPageActive(meta) && this.currentTabUrl) {
-                this.missingPermissions.push(this.currentTabUrl);
+                var origins = [];
+                origins.push(this.currentTabUrl);
                 if (Array.isArray(meta.url)) {
                     meta.url.forEach(el => {
-                        this.missingPermissions.push("http://" + el + "/");
-                        this.missingPermissions.push('https://' + el + '/');
+                        origins.push("http://" + el + "/");
+                        origins.push('https://' + el + '/');
                     });
                 } else if(meta.url) {
-                    this.missingPermissions.push("http://" + meta.url + "/");
-                    this.missingPermissions.push("https://" + meta.url + "/");
+                    origins.push("http://" + meta.url + "/");
+                    origins.push("https://" + meta.url + "/");
                 }
-                console.log(this.missingPermissions);
-                this.requestPermissions().then( acc => {
-                    if (acc && this.currentTabId) {
-                        chrome.tabs.reload(this.currentTabId);
-                    }
-                });
+                console.log(origins);
+                chrome.runtime.sendMessage({ type: "requestPermissions", data: {
+                    permissions: { origins: origins }
+                }});
             }
         },
         blockIframe(origin) {

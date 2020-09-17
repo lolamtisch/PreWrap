@@ -59,6 +59,15 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                 sender,
             });
             break;
+        case "requestPermissions":
+            chrome.permissions.request(request.data.permissions, (accepted) => {
+                console.log("Permissions accepted", accepted);
+                if (accepted) {
+                    if (request.data.sync) chrome.storage.sync.set(request.data.sync);
+                    if (request.data.local) chrome.storage.local.set(request.data.local);
+                }
+            });
+            break;
         default:
             console.log(request);
             throw 'Unknown request'
