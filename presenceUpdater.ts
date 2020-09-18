@@ -244,7 +244,7 @@ const readFile = (path: string): string =>
         writeJS(
           `./Extension/Pages/${el.name}/index.js`,
           //@ts-ignore
-          iframeMode+' var mCategory = "' + el.metadata.category + '"; \n' + el.presenceJs
+          iframeMode+' var serviceName="'+el.name+'"; var mCategory = "' + el.metadata.category + '"; \n' + el.presenceJs
         );
         if (el.iframeJs) writeJS(`./Extension/Pages/${el.name}/iframe.js`, el.iframeJs);
 

@@ -80,6 +80,35 @@ class Presence {
         return Promise.resolve(strings);
     }
 
+    getSetting(key) {
+        return new Promise(resolve => {
+            chrome.runtime.sendMessage(
+                {
+                    type: "serviceSettings",
+                    data: { service: serviceName, mode: "get", key: key },
+                },
+                (res) => {
+                    console.log(key, res)
+                    resolve(res);
+                }
+            );
+        })
+    }
+
+    hideSetting(key) {
+        chrome.runtime.sendMessage({
+            type: "serviceSettings",
+            data: { service: serviceName, mode: "hidden", key: key, value: true },
+        });
+    }
+
+    showSetting(key) {
+        chrome.runtime.sendMessage({
+            type: "serviceSettings",
+            data: { service: serviceName, mode: "hidden", key: key, value: false },
+        });
+    }
+
     setTrayTitle(trayTitle) {}
 }
 
