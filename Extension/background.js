@@ -72,6 +72,9 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                 }
             });
             break;
+        case "serviceSettings":
+            serviceSettings(request.data).then(res => sendResponse(res));
+            return true;
         default:
             console.log(request);
             throw 'Unknown request'
@@ -254,6 +257,69 @@ function checkIframeDomains(domains) {
 
         chrome.storage.sync.set({ missingIframes: missing });
     });
+}
+
+function serviceSettings(options) {
+    return new Promise((resolve, reject) => {
+        var serId = options.service;
+        var meta = pages.filter((p) => p.service === serId);
+        if (!meta) {
+            resolve();
+            return;
+        }
+        meta = meta[0];
+        const sKey = "settings_" + serId
+        chrome.storage.local.get(sKey, (res) => {
+            if (res[sKey] && Object.values(res[sKey]).length) {
+                meta.settings = meta.settings.map( el => {
+                    var e = res[sKey].find(set => set.id === el.id);
+                    if (e) return e;
+                    return el;
+                });
+            }
+
+            if (!meta.settings) {
+                resolve();
+                return;
+            };
+
+            switch (options.mode) {
+                case "all":
+                    resolve(meta.settings);
+                    break;
+                case "get":
+                    var r = meta.settings.find(s => s.id === options.key);
+                    if (r) {
+                        resolve(r.value);
+                        return;
+                    }
+                    resolve();
+                    break;
+                case "set":
+                    var r = meta.settings.find(s => s.id === options.key);
+                    if (r) {
+                      r.value = options.value;
+                      var set = {};
+                      set[sKey] = meta.settings;
+                      chrome.storage.local.set(JSON.parse(JSON.stringify(set)));
+                    }
+                    resolve();
+                    break;
+                case "hidden":
+                    var r = meta.settings.find(s => s.id === options.key);
+                    if (r) {
+                      r.hidden = options.value;
+                      var set = {};
+                      set[sKey] = meta.settings;
+                      chrome.storage.local.set(JSON.parse(JSON.stringify(set)));
+                    }
+                    resolve();
+                    break;
+                default:
+                    throw "Unknown mode";
+            }
+        });
+    })
 }
 
 checkForMissingPermissions();

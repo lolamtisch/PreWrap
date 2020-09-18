@@ -16,11 +16,26 @@ var app = new Vue({
         }
     },
     created: function () {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
             this.currentTabUrl = tabs[0].url;
             this.currentTabId = tabs[0].id;
-            this.matchedPages = this.pages.filter((page) =>
-                checkIfDomain(page, this.currentTabUrl)
+            this.matchedPages = await Promise.all(this.pages
+                .filter((page) =>
+                    checkIfDomain(page, this.currentTabUrl)
+                )
+                .map(page => {
+                    page.settings = [];
+                    return page;
+                }).map(page => {
+                    return new Promise(resolve => {
+                        chrome.runtime.sendMessage({ type: "serviceSettings", data: {service: page.service, mode: 'all'}}, (res) => {
+                            if(res) {
+                                page.settings = res;
+                            }
+                            resolve(page);
+                        })
+                    })
+                })
             );
         });
 
@@ -120,6 +135,36 @@ var app = new Vue({
         blockIframe(origin) {
             this.sync.missingIframes = this.sync.missingIframes.filter(el => el !== origin);
             if (!this.sync.blockedIframes.includes(origin)) this.sync.blockedIframes.push(origin);
+        },
+        updateSetting(meta, option, value) {
+            chrome.runtime.sendMessage({
+              type: "serviceSettings",
+              data: {
+                service: meta.service,
+                mode: "set",
+                key: option,
+                value: value,
+              },
+            });
+            const t = meta.settings.find(el => el.id === option)//.value = value;
+            if(t) Vue.set(t, 'value', value);
+        },
+        filterSettings(settings) {
+            return settings.filter(set => {
+                if (set.hidden) return false;
+
+                if (set.if) {
+                    matches = true;
+                    for (const key in set.if) {
+                        const condition = set.if[key];
+                        var angry = settings.find(set => set.id === key);
+                        if (angry && angry.value !== condition) matches = false;
+                    }
+                    if(!matches) return false;
+                }
+
+                return true;
+            });
         }
     },
 });
