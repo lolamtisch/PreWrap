@@ -5,10 +5,12 @@
   "license": "MPL-2.0",
   "scripts": {
     "cleanup": "rm -rf Presences && rm -rf Extension/Pages/* && touch Extension/Pages/.gitkeep",
+    "cleanup:win": "(if exist .\\Presences ( rmdir /s/q .\\Presences ) || true) && (if exist .\\Extension\\Pages ( rmdir /s/q .\\Extension\\Pages ) || true) && mkdir .\\Extension\\Pages && type nul > .\\Extension\\Pages\\.gitkeep",
     "clone": "git clone https://github.com/PreMiD/Presences.git ./Presences",
     "pu": "node ./presenceUpdater.js",
     "pu:compile": "tsc --module CommonJS --target ES2020 --esModuleInterop --removeComments --noUnusedParameters --noUnusedLocals --noFallthroughCasesInSwitch --newLine lf --inlineSourceMap ./presenceUpdater.ts",
-    "build": "npm run cleanup && npm run clone && npm run pu:compile && npm run pu"
+    "build": "npm run cleanup && npm run clone && npm run pu:compile && npm run pu",
+    "build:win": "npm run cleanup:win && npm run clone && npm run pu:compile && npm run pu"
   },
   "devDependencies": {
     "@babel/core": "^7.11.5",
