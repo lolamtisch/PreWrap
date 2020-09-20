@@ -111,6 +111,9 @@ var app = new Vue({
                 }
             } });
         },
+        getHostname(url) {
+            return new URL(url).hostname;
+        },
         togglePage(meta, active = false) {
             this.activePages.togglePage(meta);
 
