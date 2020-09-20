@@ -111,12 +111,12 @@ var app = new Vue({
                 }
             } });
         },
-        togglePage(meta) {
+        togglePage(meta, active = false) {
             this.activePages.togglePage(meta);
 
             if (this.activePages.isPageActive(meta) && this.currentTabUrl) {
                 var origins = [];
-                origins.push(this.currentTabUrl);
+                if (active) origins.push(this.currentTabUrl);
                 if (Array.isArray(meta.url)) {
                     meta.url.forEach(el => {
                         origins.push("http://" + el + "/");

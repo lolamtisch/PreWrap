@@ -162,7 +162,7 @@
                 <div class="matched">
                     <div v-if="!matchedPages.length">No presence for this page found</div>
                     <div v-for="page in matchedPages" :key="page.service" class="page-box-outer" :class="{active: activePages.isPageActive(page)}">
-                        <div class="page-box" @click="togglePage(page)" :class="{active: activePages.isPageActive(page)}">
+                        <div class="page-box" @click="togglePage(page, true)" :class="{active: activePages.isPageActive(page)}">
                             <div class="checkbox">
                                 <img v-if="activePages.isPageActive(page)" src="./vendor/delete-black-18dp.svg" width="18" height="18">
                                 <img v-else src="./vendor/get_app-black-18dp.svg" width="18" height="18">
