@@ -249,6 +249,14 @@
                             {{page.service}}
                         </div>
                     </div>
+                    <div class="perm box" v-if="sync.allowedIframes.length">
+                        <div>
+                            <h3><span>Iframes</span></h3>
+                            <div v-for="iframe in sync.allowedIframes" :key="iframe" class="permP">
+                                {{getHostname(iframe)}} <span @click="blockIframe(iframe)">X</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="section" v-if="active==='blocked'">

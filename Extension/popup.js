@@ -137,6 +137,7 @@ var app = new Vue({
         },
         blockIframe(origin) {
             this.sync.missingIframes = this.sync.missingIframes.filter(el => el !== origin);
+            this.sync.allowedIframes = this.sync.allowedIframes.filter(el => el !== origin);
             if (!this.sync.blockedIframes.includes(origin)) this.sync.blockedIframes.push(origin);
         },
         deBlockIframe(origin) {
