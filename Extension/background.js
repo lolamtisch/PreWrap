@@ -215,7 +215,7 @@ chrome.browserAction.onClicked.addListener(tab => {
 
 function findPageWithOrigin(origin) {
     if (originCache[origin]) return origin;
-    return pages.find(page => checkIfDomain(page, origin));
+    return pages.filter(page => activePages.includes(page.service)).find(page => checkIfDomain(page, origin));
 }
 
 function checkIfDomain(meta, url) {
@@ -334,6 +334,7 @@ function serviceSettings(options) {
 checkForMissingPermissions();
 function checkForMissingPermissions() {
     iframePermCheck();
+    cleanUpPermissions();
     function iframePermCheck() {
         chrome.storage.sync.get(["allowedIframes", "missingIframes"], (res) => {
             var allowed = [];
@@ -357,6 +358,28 @@ function checkForMissingPermissions() {
             })).then(() => {
                 chrome.storage.sync.set({ missingIframes: missing });
             })
+        });
+    }
+    function cleanUpPermissions() {
+        chrome.storage.sync.get(["allowedIframes"], (res) => {
+            var allowedIframes = [];
+            if (res.allowedIframes && Object.values(res.allowedIframes).length) {
+                allowedIframes = res.allowedIframes;
+            }
+            chrome.permissions.getAll((perms) => {
+                console.log('Active Permissions', perms);
+                if (perms.origins && perms.origins.length) {
+                    const removePerm = perms.origins.filter((origin) => {
+                        if (allowedIframes.includes(origin) || allowedIframes.includes(origin.replace('*', ''))) return false;
+                        if (findPageWithOrigin(origin)) return false;
+                        return true;
+                    });
+                    if (removePerm) {
+                        console.log('Unneeded permissions', removePerm);
+                        chrome.permissions.remove({origins: removePerm});
+                    }
+                }
+            });
         });
     }
 }
