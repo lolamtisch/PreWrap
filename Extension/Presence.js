@@ -109,6 +109,39 @@ class Presence {
         });
     }
 
+    getPageletiable(letiable) {
+        return new Promise(resolve => {
+            let script = document.createElement("script"),
+                _listener = (data) => {
+                    script.remove();
+                    resolve(JSON.parse(data.detail));
+
+                    window.removeEventListener("PreWrap_Pageletiable", _listener, true);
+                };
+
+            window.addEventListener("PreWrap_Pageletiable", _listener);
+
+            script.id = "PreWrap_Pageletiables";
+            script.appendChild(
+                document.createTextNode(`
+                    var pmdPL = new CustomEvent(
+                        "PreWrap_Pageletiable",
+                        {
+                            detail: (typeof window["${letiable}"] === "string")
+                                ? window["${letiable}"]
+                                : JSON.stringify(window["${letiable}"])
+                        }
+                    );
+                    window.dispatchEvent(pmdPL);
+                `)
+            );
+
+            (document.body || document.head || document.documentElement).appendChild(
+                script
+            );
+        });
+    }
+
     setTrayTitle(trayTitle) {}
 }
 
