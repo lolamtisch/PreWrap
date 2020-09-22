@@ -88,7 +88,7 @@ var app = new Vue({
     },
     computed: {
         enabledPages() {
-            var ac = Object.keys(this.activePages.pages);
+            var ac = this.activePages.pages;
             if (!ac.length) return [];
             return this.pages.filter((p) => ac.includes(p.service));
         },
@@ -194,37 +194,28 @@ function checkIfDomain(meta, url) {
 
 async function ActivePages() {
     var obj = {
-        pages: {},
+        pages: [],
         async init() {
             return this.retrievePages();
         },
         togglePage (meta) {
-            if (this.pages[meta.service]) {
+            if (this.pages.includes(meta.service)) {
                 this.removePage(meta);
             } else {
                 this.addPage(meta);
             }
         },
         removePage (meta) {
-            if (Vue) {
-                Vue.delete(this.pages, meta.service);
-            } else {
-                delete this.pages[meta.service];
-            }
-
+            this.pages = this.pages.filter(el => el !== meta.service);
             return this.savePages();
         },
         addPage (meta) {
-            if (Vue) {
-                Vue.set(this.pages, meta.service, true);
-            }else{
-                this.pages[meta.service] = true;
-            }
+            this.pages.push(meta.service);
 
             return this.savePages();
         },
         isPageActive (meta) {
-            if (this.pages[meta.service]) return true;
+            if (this.pages.includes(meta.service)) return true;
             return false;
         },
         async savePages () {
@@ -237,7 +228,7 @@ async function ActivePages() {
         async retrievePages () {
             return new Promise((resolve) => {
                 chrome.storage.sync.get('activePages', (res) => {
-                    if (res.activePages && Object.values(res.activePages).length) {
+                    if (res.activePages && res.activePages.length) {
                         this.pages = res.activePages;
                     }
                     resolve(this.pages);

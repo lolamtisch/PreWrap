@@ -7,7 +7,6 @@ chrome.runtime.onMessageExternal.addListener(function (request, sender, sendResp
     return true;
 });
 
-initWebNavigationListener();
 async function initWebNavigationListener() {
     conent();
     ifr();
@@ -29,11 +28,13 @@ async function initWebNavigationListener() {
 
 }
 
+var originCache = [];
 var activePages = [];
 chrome.storage.sync.get('activePages', (res) => {
     if (res.activePages && Object.values(res.activePages).length) {
         activePages = res.activePages;
     }
+    initWebNavigationListener();
 });
 
 chrome.storage.onChanged.addListener(function (changes, namespace) {
@@ -48,6 +49,7 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
         storageChange.newValue
         );
         if (namespace === 'sync' && (key === 'activePages')) {
+            originCache = [];
             activePages = storageChange.newValue;
         }
         if (namespace === 'sync' && (key === 'activePages' || key === 'allowedIframes')) {
@@ -102,30 +104,28 @@ function reloadTabsByOrigin(origins) {
 
 function getFilter() {
     return new Promise((resolve) => {
-        chrome.storage.sync.get('activePages', (res) => {
-            if (res.activePages && Object.values(res.activePages).length) {
-                console.log('Active Pages', res.activePages);
-                var filter = [];
-                Object.keys(res.activePages).forEach(page => {
-                    const found = pages.find(p => p.service === page);
-                    if (found) {
-                        if (found.regExp) filter.push({urlMatches: found.regExp});
-                        if (Array.isArray(found.url)) {
-                            found.url.forEach(el => {
-                                filter.push({hostEquals: el});
-                            });
+        if (activePages && activePages.length) {
+            console.log('Active Pages', activePages);
+            var filter = [];
+            activePages.forEach(page => {
+                const found = pages.find(p => p.service === page);
+                if (found) {
+                    if (found.regExp) filter.push({urlMatches: found.regExp});
+                    if (Array.isArray(found.url)) {
+                        found.url.forEach(el => {
+                            filter.push({hostEquals: el});
+                        });
 
-                        } else {
-                            filter.push({hostEquals: found.url});
-                        }
+                    } else {
+                        filter.push({hostEquals: found.url});
                     }
+                }
 
-                })
-                resolve(filter);
-                return;
-            }
-            resolve([]);
-        })
+            })
+            resolve(filter);
+            return;
+        }
+        resolve([]);
     });
 }
 
@@ -213,7 +213,6 @@ chrome.browserAction.onClicked.addListener(tab => {
     console.log('click');
 });
 
-originCache = [];
 function findPageWithOrigin(origin) {
     if (originCache[origin]) return origin;
     return pages.find(page => checkIfDomain(page, origin));
