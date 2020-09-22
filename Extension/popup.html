@@ -161,7 +161,7 @@
             <div class="header">
                 <a @click="active='home'" :class="{active: active==='home'}">Home</a>
                 <a @click="active='active'" :class="{active: active==='active'}">Active</a>
-                <a>Blocked</a>
+                <a @click="active='blocked'" :class="{active: active==='blocked'}">Blocked</a>
                 <a @click="active='search'" :class="{active: active==='search'}">Search</a>
             </div>
             <div class="section" v-if="active==='home'">
@@ -249,6 +249,21 @@
                             {{page.service}}
                         </div>
                     </div>
+                </div>
+            </div>
+            <div class="section" v-if="active==='blocked'">
+                <div class="perm box" v-if="sync.blockedIframes.length">
+                    <h2>Blocked Domains</h2>
+
+                    <div v-if="sync.blockedIframes.length">
+                        <h3><span>Iframes</span></h3>
+                        <div v-for="iframe in sync.blockedIframes" :key="iframe" class="permP">
+                            {{getHostname(iframe)}} <span @click="deBlockIframe(iframe)">X</span>
+                        </div>
+                    </div>
+                </div>
+                <div v-else>
+                    <h3><span>No blocked domains</span></h3>
                 </div>
             </div>
             <div class="section" v-if="active==='search'">

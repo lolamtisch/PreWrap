@@ -139,6 +139,10 @@ var app = new Vue({
             this.sync.missingIframes = this.sync.missingIframes.filter(el => el !== origin);
             if (!this.sync.blockedIframes.includes(origin)) this.sync.blockedIframes.push(origin);
         },
+        deBlockIframe(origin) {
+            this.sync.blockedIframes = this.sync.blockedIframes.filter(el => el !== origin);
+            if (!this.sync.missingIframes.includes(origin)) this.sync.missingIframes.push(origin);
+        },
         updateSetting(meta, option, value) {
             chrome.runtime.sendMessage({
               type: "serviceSettings",
