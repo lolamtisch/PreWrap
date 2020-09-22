@@ -9,8 +9,9 @@
     "clone": "git clone https://github.com/PreMiD/Presences.git ./Presences",
     "pu": "node ./presenceUpdater.js",
     "pu:compile": "tsc --module CommonJS --target ES2020 --esModuleInterop --removeComments --noUnusedParameters --noUnusedLocals --noFallthroughCasesInSwitch --newLine lf --inlineSourceMap ./presenceUpdater.ts",
-    "build": "npm run cleanup && npm run clone && npm run pu:compile && npm run pu",
-    "build:win": "npm run cleanup:win && npm run clone && npm run pu:compile && npm run pu"
+    "build": "npm run cleanup && npm run clone && npm run pu:compile && npm run pu && npm run build:webpack",
+    "build:webpack": "webpack",
+    "build:win": "npm run cleanup:win && npm run clone && npm run pu:compile && npm run pu && npm run build:webpack"
   },
   "devDependencies": {
     "@babel/core": "^7.11.5",
@@ -24,7 +25,9 @@
     "@types/semver": "^7.3.3",
     "@typescript-eslint/eslint-plugin": "^4.0.1",
     "@typescript-eslint/parser": "^4.0.1",
+    "@vue/cli-plugin-babel": "^4.5.6",
     "axios": "^0.20.0",
+    "babel-loader": "^8.1.0",
     "chalk": "^4.1.0",
     "eslint": "^6.0.0",
     "execa": "^4.0.3",
@@ -35,6 +38,10 @@
     "semver": "^7.3.2",
     "source-map-support": "^0.5.19",
     "terser": "^5.2.1",
-    "typescript": "^3.9.7"
+    "terser-webpack-plugin": "^4.2.2",
+    "vue-loader": "^15.9.3",
+    "vue-template-compiler": "^2.6.12",
+    "webpack": "^4.44.2",
+    "webpack-cli": "^3.3.12"
   }
 }
