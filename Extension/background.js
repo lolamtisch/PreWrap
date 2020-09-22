@@ -111,6 +111,7 @@ function getFilter() {
                 const found = pages.find(p => p.service === page);
                 if (found) {
                     if (found.regExp) filter.push({urlMatches: found.regExp});
+                    if (found.regExp && found.regExp.includes('[.]html')) filter.push({ originAndPathMatches: found.regExp });
                     if (Array.isArray(found.url)) {
                         found.url.forEach(el => {
                             filter.push({hostEquals: el});
@@ -180,12 +181,16 @@ function navigationListener(data) {
             return;
         }
 
-        const page = findPageWithOrigin(permConfig.origins[0]);
-        console.log("Inject", page.service);
+        var page = findPageWithOrigin(permConfig.origins[0]);
         if (!page) {
-            console.error('No Page found for', iframeOrigin);
+            page = findPageWithOrigin(data.url);
+        }
+
+        if (!page) {
+            console.error('No Page found for', permConfig.origins[0]);
             return
         }
+        console.log("Inject", page.service);
         chrome.tabs.executeScript(data.tabId, {
             file: "Presence.js",
             frameId: data.frameId,
@@ -372,6 +377,7 @@ function checkForMissingPermissions() {
                     const removePerm = perms.origins.filter((origin) => {
                         if (allowedIframes.includes(origin) || allowedIframes.includes(origin.replace('*', ''))) return false;
                         if (findPageWithOrigin(origin)) return false;
+                        if (/^https?:\/\/\d+/.test(origin)) return false;
                         return true;
                     });
                     if (removePerm) {
