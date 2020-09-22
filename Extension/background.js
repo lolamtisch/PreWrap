@@ -29,6 +29,13 @@ async function initWebNavigationListener() {
 
 }
 
+var activePages = [];
+chrome.storage.sync.get('activePages', (res) => {
+    if (res.activePages && Object.values(res.activePages).length) {
+        activePages = res.activePages;
+    }
+});
+
 chrome.storage.onChanged.addListener(function (changes, namespace) {
     for (var key in changes) {
         var storageChange = changes[key];
@@ -40,6 +47,9 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
         storageChange.oldValue,
         storageChange.newValue
         );
+        if (namespace === 'sync' && (key === 'activePages')) {
+            activePages = storageChange.newValue;
+        }
         if (namespace === 'sync' && (key === 'activePages' || key === 'allowedIframes')) {
             initWebNavigationListener();
         }
