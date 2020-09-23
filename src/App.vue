@@ -138,6 +138,8 @@
 </template>
 
 <script>
+import Vue from 'vue';
+
 export default {
     data: function() {
         return {
@@ -251,6 +253,7 @@ export default {
                     missingPermissions: [],
                 }
             } });
+            window.close();
         },
         getHostname(url) {
             return new URL(url).hostname;
@@ -319,6 +322,7 @@ export default {
 }
 
 function checkIfDomain(meta, url) {
+    let res = false;
     if (typeof meta.regExp !== "undefined") {
         res = url.match(new RegExp(meta.regExp));
 

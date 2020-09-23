@@ -73,14 +73,21 @@
             }
             .page-box {
                 border: 4px solid #4EAFF7;
+                border-top-width: 2px;
+                border-bottom-width: 2px;
                 border-radius: 20px;
                 display: flex;
                 justify-content: space-between;
                 min-height: 30px;
                 align-items: center;
                 transition: 0.5s border-color;
-                margin-top: -4px;
             }
+                .page-box:first-of-type {
+                    border-top-width: 4px;
+                }
+                .page-box:last-of-type {
+                    border-bottom-width: 4px;
+                }
                 .page-box.active {
                     border-color: #4ee7f7;
                     z-index: 2;
@@ -91,8 +98,8 @@
                     align-self: stretch;
                     border-right: 2px solid #4eaff7;
                     border-radius: 25px;
-                    margin-left: -1px;
-                    padding-left: 1px;
+                    margin-left: -2px;
+                    padding-left: 2px;
                     margin-top: -1px;
                     margin-bottom: -1px;
                     margin-right: 10px;
