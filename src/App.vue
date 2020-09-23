@@ -259,7 +259,7 @@ export default {
     },
     methods: {
         requestPermissions() {
-            chrome.runtime.sendMessage({ type: "requestPermissions", data: {
+            this.permSend({ type: "requestPermissions", data: {
                 permissions: { origins: this.missingPermissions.concat(this.sync.missingIframes) },
                 sync: {
                     allowedIframes: this.sync.allowedIframes.concat(this.sync.missingIframes),
@@ -269,7 +269,19 @@ export default {
                     missingPermissions: [],
                 }
             } });
-            window.close();
+        },
+        permSend(request) {
+            if (typeof browser !== 'undefined' && typeof chrome !== "undefined") {
+                chrome.permissions.request(request.data.permissions, (accepted) => {
+                    console.log("Permissions accepted", accepted);
+                    if (request.data.sync) chrome.storage.sync.set(request.data.sync);
+                    if (request.data.local) chrome.storage.local.set(request.data.local);
+                    window.close();
+                });
+            } else {
+                chrome.runtime.sendMessage(request);
+                window.close();
+            }
         },
         getHostname(url) {
             return new URL(url).hostname;
@@ -290,7 +302,7 @@ export default {
                     origins.push("https://" + meta.url + "/");
                 }
                 console.log(origins);
-                chrome.runtime.sendMessage({ type: "requestPermissions", data: {
+                this.permSend({ type: "requestPermissions", data: {
                     permissions: { origins: origins }
                 }});
             }
