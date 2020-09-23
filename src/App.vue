@@ -7,6 +7,13 @@
             <a @click="active='search'" :class="{active: active==='search'}">Search</a>
         </div>
         <div class="section" v-if="active==='home'">
+
+            <div class="healthError" v-if="healthError">
+                <h2>ERROR</h2>
+                {{healthError.text}}
+                <a v-if="healthError.link" :href="healthError.link.href" target="_blank">{{healthError.link.text}}</a>
+            </div>
+
             <div class="perm box" v-if="missingPermissions.length || sync.missingIframes.length">
                 <h2>Missing Permissions</h2>
                 <div v-if="missingPermissions.length">
@@ -142,11 +149,17 @@
 <script>
 import Vue from 'vue';
 
+var extensionId = "agnaejlkbiiggajjmnpmeheigkflbnoo"; //Chrome
+if (typeof browser !== 'undefined' && typeof chrome !== "undefined") {
+    extensionId = "{57081fef-67b4-482f-bcb0-69296e63ec4f}"; //Firefox
+}
+
 export default {
     data: function() {
         return {
             active: 'home',
             pages: pages,
+            healthError: null,
             matchedPages: [],
             activePages: { pages: {} },
             missingPermissions: [],
@@ -161,6 +174,7 @@ export default {
         };
     },
     created: function () {
+        this.extensionHealth();
         chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
             this.currentTabUrl = tabs[0].url;
             this.currentTabId = tabs[0].id;
@@ -318,6 +332,24 @@ export default {
                 }
 
                 return true;
+            });
+        },
+        extensionHealth() {
+            console.log('Health check')
+            var dLink = "https://chrome.google.com/webstore/detail/discord-rich-presence/agnaejlkbiiggajjmnpmeheigkflbnoo"; //Chrome
+            if (typeof browser !== 'undefined' && typeof chrome !== "undefined") {
+                dLink = "https://addons.mozilla.org/firefox/addon/discord-rich-presence/"; //Firefox
+            }
+
+            chrome.runtime.sendMessage(extensionId, {}, (response) => {
+                console.log('Health error', chrome.runtime.lastError);
+                this.healthError = {
+                    text: 'Please install the helper extension',
+                    link: {
+                        href: dLink,
+                        text: 'Download'
+                    }
+                };
             });
         }
     },
