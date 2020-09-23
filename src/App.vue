@@ -75,23 +75,25 @@
             </div>
         </div>
         <div class="section" v-if="active==='active'">
-            <div class="matched">
+            <div class="matched" style="border: 0px">
                 <h2>Active Presences</h2>
                 <br>
-                <div class="page-box" v-for="page in enabledPages" :key="page.service" @click="togglePage(page)"
-                    :class="{active: activePages.isPageActive(page)}">
-                    <div class="checkbox">
-                        <img v-if="activePages.isPageActive(page)" :src="'./../vendor/delete-black-18dp.svg'" width="18" height="18">
-                        <img v-else :src="'./../vendor/get_app-black-18dp.svg'" width="18" height="18">
-                    </div>
-                    <div class="img">
-                        <img :src="page.logo" width="23">
-                    </div>
-                    <div class="text">
-                        {{page.service}}
+                <div>
+                    <div class="page-box" v-for="page in enabledPages" :key="page.service" @click="togglePage(page)"
+                        :class="{active: activePages.isPageActive(page)}">
+                        <div class="checkbox">
+                            <img v-if="activePages.isPageActive(page)" :src="'./../vendor/delete-black-18dp.svg'" width="18" height="18">
+                            <img v-else :src="'./../vendor/get_app-black-18dp.svg'" width="18" height="18">
+                        </div>
+                        <div class="img">
+                            <img :src="page.logo" width="23">
+                        </div>
+                        <div class="text">
+                            {{page.service}}
+                        </div>
                     </div>
                 </div>
-                <div class="perm box" v-if="sync.allowedIframes.length">
+                <div class="perm box" v-if="sync.allowedIframes.length" style="border: 0px; padding-left: 0; padding-right: 0;">
                     <div>
                         <h3><span>Iframes</span></h3>
                         <div v-for="iframe in sync.allowedIframes" :key="iframe" class="permP">
