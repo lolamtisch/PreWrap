@@ -49,8 +49,10 @@ class Presence {
     }
 
     setActivity(presenceData/*: presenceData = {}*/, playback/*: boolean = true*/) {
+        if(presenceData && Object.keys(presenceData).length) {
+          presenceData.largeImageText = serviceName;
+        }
         console.log('presence', presenceData);
-        presenceData.largeImageText = serviceName;
         this.internalPresence = presenceData;
         this.playback = playback;
     }
