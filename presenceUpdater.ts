@@ -10,8 +10,6 @@ import {
 } from "typescript";
 import { valid } from "semver";
 import { join, normalize, resolve as rslv, sep } from "path";
-import { transformFileAsync as transform } from "@babel/core";
-import { minify as terser } from "terser";
 
 let exitCode = 0,
   appCode = 0;
@@ -58,32 +56,6 @@ const readFile = (path: string): string =>
     });
 
     if (emitResult.emitSkipped) appCode = 1;
-  },
-  minify = async (file: string): Promise<void> => {
-    const result = await terser(readFile(file), {
-      ecma: 5,
-      compress: {
-        passes: 2
-      }
-    });
-    if (result && result.code && result.code.length > 0)
-      writeJS(file, result.code);
-    else {
-      console.error(`Error. File ${file} was not minified, skipping...`);
-      appCode = 1;
-    }
-  },
-  polyfill = async (file: string): Promise<void> => {
-    const result = await transform(file, {
-      presets: [["@babel/preset-env", { exclude: ["transform-regenerator"] }]]
-    });
-    if (result && result.code && result.code.length > 0) {
-      writeJS(file, result.code);
-      await minify(file);
-    } else {
-      console.error(`Error. File ${file} was not polyfilled, skipping...`);
-      appCode = 1;
-    }
   },
   compile = async (filesToCompile: string[]): Promise<void> => {
     const premidTypings = join(__dirname, 'Presences', "@types", "premid", "index.d.ts"),
@@ -177,10 +149,8 @@ const readFile = (path: string): string =>
 
         await compile(sources);
 
-        const jsFiles = glob(`${path}dist/*.js`);
-        for (const file of jsFiles) {
-          await polyfill(file);
-        }
+
+
 
         if (!existsSync(`${path}dist/presence.js`)) {
           const meta = metadataFile.service ? metadataFile.service : path;
