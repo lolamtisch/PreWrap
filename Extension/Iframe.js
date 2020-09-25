@@ -10,9 +10,8 @@ console.log = (function () {
 activePresence = null;
 
 class iFrame {
-    _events = [];
-
     constructor() {
+        this._events = [];
         console.log('loaded', this.getUrl())
         activePresence = this;
     }

@@ -8,7 +8,7 @@ fs.readFile(manifest, "utf8", function (err, data) {
     return console.log(err);
   }
 
-  const ver = new Date().toISOString().replace(/T.*/, "").replace(/-/g, ".");
+  const ver = new Date().toISOString().replace(/T.*/, "").replace(/-0*/g, ".");
 
   const result = data.replace(
     /"version": "[\d|\.]+",/g,

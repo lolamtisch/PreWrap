@@ -15,12 +15,13 @@ if (typeof browser !== 'undefined' && typeof chrome !== "undefined") {
 activePresence = null;
 
 class Presence {
-    _events = [];
-    playback = true;
-    internalPresence = {};
-    mode = 'active';
-
     constructor(presenceOptions) {
+        this._events = [];
+        this.playback = true;
+        this.internalPresence = {};
+        this.mode = "active";
+
+
         console.log('######', presenceOptions, mCategory);
         this.clientId = presenceOptions.clientId;
 
