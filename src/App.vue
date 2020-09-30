@@ -353,18 +353,9 @@ export default {
                 dLink = "https://addons.mozilla.org/firefox/addon/discord-rich-presence/"; //Firefox
             }
 
-            chrome.runtime.sendMessage(extensionId, { mode: 'active' }, (response) => {
-                console.log('Health error', chrome.runtime.lastError);
-                if (
-                    (
-                        typeof browser !== 'undefined' && typeof chrome !== "undefined" &&
-                        chrome.runtime.lastError &&
-                        chrome.runtime.lastError.message === 'An unexpected error occurred'
-                    ) || (
-                        typeof browser === 'undefined' &&
-                        chrome.runtime.lastError
-                    )
-                ) {
+            chrome.runtime.sendMessage(extensionId, { action: 'state' }, (response) => {
+                console.log('Health check response', response, chrome.runtime.lastError);
+                if (chrome.runtime.lastError || !response) {
                     this.healthError = {
                         text: 'Please install the helper extension',
                         link: {
@@ -372,6 +363,16 @@ export default {
                             text: 'Download'
                         }
                     };
+                } else if(response.error) {
+                    this.healthError = {
+                        text: response.error.message,
+                    };
+                    if(response.error.url) {
+                        this.healthError.link = {
+                            href: response.error.url,
+                            text: 'Download'
+                        }
+                    }
                 }
             });
         }
