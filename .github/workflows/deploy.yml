@@ -1,0 +1,57 @@
+name: Deployment
+on:
+  schedule:
+    - cron:  '0 0 * * 0'
+  push:
+    branches:
+      - master
+
+jobs:
+  Firefox:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+    - name: Build
+      run: |
+        npm ci
+        npm run build
+      env:
+        APP_TARGET: firefox
+    - name: Pack
+      run: |
+        npm run pack:webextension
+    - uses: trmcnvn/firefox-addon@v1
+      with:
+        uuid: '{9474c3da-698d-46ca-a50f-e8ff1ebdfff1}'
+        xpi: webextension.zip
+        manifest: Extension/manifest.json
+        api-key: ${{ secrets.FIREFOX_API_KEY }}
+        api-secret: ${{ secrets.FIREFOX_API_SECRET }}
+
+  Chrome:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+    - name: Build
+      run: |
+        npm ci
+        npm run build
+      env:
+        APP_TARGET: chrome
+    - name: Pack
+      run: |
+        npm run pack:webextension
+    - name: Deploy
+      uses: trmcnvn/chrome-addon@v2
+      with:
+        extension: calpcokkjmookodfpbmdbknfcjhekgaj
+        zip: webextension.zip
+        client-id: ${{ secrets.DEV_CHROME_CLIENT_ID }}
+        client-secret: ${{ secrets.DEV_CHROME_CLIENT_SECRET }}
+        refresh-token: ${{ secrets.DEV_CHROME_REFRESH_TOKEN }}
