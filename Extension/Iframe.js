@@ -1,3 +1,8 @@
+if (typeof oldLog !== 'undefined' && oldLog) {
+  console.error('Content and Iframe executed at the same time');
+  console.log = oldLog;
+}
+
 console.log = (function () {
     return Function.prototype.bind.call(
         console.log,
@@ -7,13 +12,13 @@ console.log = (function () {
     );
 })();
 
-activePresence = null;
+var activeIframePresence = null;
 
 class iFrame {
     constructor() {
         this._events = [];
         console.log('loaded', this.getUrl())
-        activePresence = this;
+        activeIframePresence = this;
     }
 
     getUrl() {
@@ -37,6 +42,6 @@ class iFrame {
 chrome.runtime.onMessage.addListener(function (info, sender, sendResponse) {
     if (info.type === 'presence') {
         console.log('Iframe data requested', info);
-        activePresence.callEvent();
+        activeIframePresence.callEvent();
     }
 });

@@ -158,6 +158,7 @@ function iframeNavigationListener(data) {
             return
         }
         console.log("Inject Iframe", page.service);
+        if (data.frameId) console.log('Do not inject iframe on root page');
         chrome.tabs.executeScript(data.tabId, {
             file: "Iframe.js",
             frameId: data.frameId,
