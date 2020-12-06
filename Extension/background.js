@@ -158,7 +158,10 @@ function iframeNavigationListener(data) {
             return
         }
         console.log("Inject Iframe", page.service);
-        if (data.frameId) console.log('Do not inject iframe on root page');
+        if (!data.frameId) {
+            console.log('Do not inject iframe on root page');
+            return;
+        }
         chrome.tabs.executeScript(data.tabId, {
             file: "Iframe.js",
             frameId: data.frameId,
@@ -192,6 +195,12 @@ function navigationListener(data) {
             return
         }
         console.log("Inject", page.service);
+
+        if (data.frameId) {
+            console.log('Do not inject root page script in iframes');
+            return;
+        }
+
         chrome.tabs.executeScript(data.tabId, {
             file: "Presence.js",
             frameId: data.frameId,
