@@ -1,3 +1,9 @@
+const regExpReplacement = {
+  'Amazon': '([a-z0-9-]+[.])*amazon([.][a-z]+)+[/]',
+  'eggsy.codes': 'eggsy[.]xyz',
+}
+
+
 import "source-map-support/register";
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
@@ -221,6 +227,26 @@ const readFile = (path: string): string =>
         //@ts-ignore
         delete el.metadata.description;
         delete el.metadata.version;
+
+        //@ts-ignore
+        if (el.metadata.regExp) {
+          //@ts-ignore
+          const reg = el.metadata.regExp;
+          if (
+            reg.includes('(?=') ||
+            reg.includes('(?!') ||
+            reg.includes('(?<=') ||
+            reg.includes('(?<!')
+          ) {
+            if (!regExpReplacement[el.name]) {
+              console.log('Incompatible regex found ' + reg);
+              throw 'Incompatible regex found ' + reg;
+            }
+            //@ts-ignore
+            el.metadata.regExp = regExpReplacement[el.name];
+          }
+        }
+
         metad.push(el.metadata);
       })
 
