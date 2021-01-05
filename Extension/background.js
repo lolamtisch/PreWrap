@@ -87,6 +87,13 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         case "serviceSettings":
             serviceSettings(request.data).then(res => sendResponse(res));
             return true;
+        case "getStrings":
+            const strings = request.data;
+            for (var key in request.data) {
+                strings[key] = language[strings[key]];
+            }
+            sendResponse(strings);
+            break;
         default:
             console.log(request);
             throw 'Unknown request'
