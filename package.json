@@ -11,8 +11,9 @@
     "pu:compile": "node ./node_modules/typescript/bin/tsc --module CommonJS --target ES2020 --esModuleInterop --removeComments --noUnusedParameters --noUnusedLocals --noFallthroughCasesInSwitch --newLine lf --inlineSourceMap ./presenceUpdater.ts",
     "pack:webextension": "node package/updateVersion.js && node package/pack.js",
     "pack": "npm run build && npm run pack:webextension",
-    "build": "npm run cleanup && npm run clone && npm run pu:compile && npm run pu && npm run build:webpack",
+    "build": "npm run cleanup && npm run clone && npm run pu:compile && npm run pu && npm run build:webpack && npm run build:localisation",
     "build:webpack": "webpack",
+    "build:localisation": "node locale.js",
     "build:win": "npm run cleanup:win && npm run clone && npm run pu:compile && npm run pu && npm run build:webpack"
   },
   "devDependencies": {
