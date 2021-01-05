@@ -4,9 +4,9 @@
   "author": "Timeraa",
   "license": "MPL-2.0",
   "scripts": {
-    "cleanup": "rm -rf Presences && rm -rf Extension/Pages/* && touch Extension/Pages/.gitkeep",
-    "cleanup:win": "(if exist .\\Presences ( rmdir /s/q .\\Presences ) || true) && (if exist .\\Extension\\Pages ( rmdir /s/q .\\Extension\\Pages ) || true) && mkdir .\\Extension\\Pages && type nul > .\\Extension\\Pages\\.gitkeep",
-    "clone": "git clone https://github.com/PreMiD/Presences.git ./Presences",
+    "cleanup": "rm -rf Localization && rm -rf Presences && rm -rf Extension/Pages/* && touch Extension/Pages/.gitkeep",
+    "cleanup:win": "(if exist .\\Localization ( rmdir /s/q .\\Localization ) || true) && (if exist .\\Presences ( rmdir /s/q .\\Presences ) || true) && (if exist .\\Extension\\Pages ( rmdir /s/q .\\Extension\\Pages ) || true) && mkdir .\\Extension\\Pages && type nul > .\\Extension\\Pages\\.gitkeep",
+    "clone": "git clone https://github.com/PreMiD/Presences.git ./Presences && git clone https://github.com/PreMiD/Localization.git ./Localization",
     "pu": "node ./presenceUpdater.js",
     "pu:compile": "node ./node_modules/typescript/bin/tsc --module CommonJS --target ES2020 --esModuleInterop --removeComments --noUnusedParameters --noUnusedLocals --noFallthroughCasesInSwitch --newLine lf --inlineSourceMap ./presenceUpdater.ts",
     "pack:webextension": "node package/updateVersion.js && node package/pack.js",

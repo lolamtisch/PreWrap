@@ -334,7 +334,7 @@ export default {
                 if (set.hidden) return false;
 
                 if (set.if) {
-                    matches = true;
+                    let matches = true;
                     for (const key in set.if) {
                         const condition = set.if[key];
                         var angry = settings.find(set => set.id === key);
