@@ -148,6 +148,57 @@ class Presence {
     }
 
     setTrayTitle(trayTitle) {}
+
+    getExtensionVersion(numeric = true) {
+        const version = chrome.runtime.getManifest().version;
+        if (onlyNumeric) return parseInt(version.replace(/\D/g, ""));
+        return version;
+    }
+
+    async getLogs(regExp = false) {
+        //TODO:
+    }
+
+    info(text) {
+        console.log(
+            `[PRESENCE] [INFO] ${text}`,
+        );
+    }
+
+    success(text) {
+        console.log(
+            `[PRESENCE] [SUCCESS] ${text}`,
+        );
+    }
+
+    error(text) {
+        console.error(
+            `[PRESENCE] [ERROR] ${text}`,
+        );
+    }
+
+    getTimestampsfromMedia(element) {
+        return this.getTimestamps(element.currentTime, element.duration);
+    }
+
+    getTimestamps(elementTime, elementDuration) {
+        const startTime = Date.now();
+        const endTime = Math.floor(startTime / 1000) - elementTime + elementDuration;
+        return [Math.floor(startTime / 1000), endTime];
+    }
+
+    timestampFromFormat(format) {
+        return format
+            .split(":")
+            .map(time => {
+                return parseInt(time);
+            })
+            .reduce((prev, time) => 60 * prev + time);
+    }
+
+    createSlideshow() {
+        //TODO:
+    }
 }
 
 chrome.runtime.onMessage.addListener(function (info, sender, sendResponse) {
