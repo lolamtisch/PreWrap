@@ -156,7 +156,14 @@ class Presence {
     }
 
     async getLogs(regExp = false) {
-        //TODO:
+        let logs = (await this.getPageletiable("console")).logs;
+        if (regExp) {
+            logs = logs.filter(
+                log => typeof log === "string" && new RegExp(regExp).test(log)
+            );
+        }
+        if (logs == undefined) logs = [];
+        return logs;
     }
 
     info(text) {

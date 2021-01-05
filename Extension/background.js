@@ -209,6 +209,14 @@ function navigationListener(data) {
             file: "Pages/"+page.service+"/index.js",
             frameId: data.frameId,
         });
+
+        if (page.readLogs) {
+            console.log('Inject log reader');
+            chrome.tabs.executeScript(data.tabId, {
+                file: "logReader.js",
+                frameId: data.frameId,
+            });
+        }
     });
 }
 
