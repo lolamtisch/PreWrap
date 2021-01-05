@@ -15,6 +15,8 @@ if (typeof browser !== 'undefined' && typeof chrome !== "undefined") {
 
 var activePresence = null;
 
+const MIN_SLIDE_TIME = 5000;
+
 class Presence {
     constructor(presenceOptions) {
         this._events = [];
@@ -32,6 +34,10 @@ class Presence {
 
         activePresence = this;
 
+        this.register();
+    }
+
+    register() {
         chrome.runtime.sendMessage(extensionId, { mode: this.mode }, function (response) {
             console.log('Presence registred', response)
         });
@@ -51,6 +57,7 @@ class Presence {
     }
 
     setActivity(presenceData/*: presenceData = {}*/, playback/*: boolean = true*/) {
+        if (presenceData instanceof Slideshow) presenceData = presenceData.currentSlide;
         if(presenceData && Object.keys(presenceData).length) {
           presenceData.largeImageText = serviceName;
         }
@@ -204,8 +211,101 @@ class Presence {
     }
 
     createSlideshow() {
-        //TODO:
+        return new Slideshow;
     }
+}
+
+class SlideshowSlide {
+	id;
+	data;
+	_interval;
+
+	constructor(id, data, interval) {
+		this.id = id;
+		this.data = data;
+		this.interval = interval;
+	}
+
+	get interval() {
+		return this._interval;
+	}
+
+	set interval(interval) {
+		if (interval <= MIN_SLIDE_TIME) {
+			interval = MIN_SLIDE_TIME;
+		}
+		this._interval = interval;
+	}
+
+	updateData(data = null) {
+		this.data = data || this.data;
+	}
+
+	updateInterval(interval = null) {
+		this.interval = interval || this.interval;
+	}
+}
+
+class Slideshow {
+    index = 0;
+    slides = [];
+	currentSlide = {};
+
+    constructor() {
+		this.pollSlide()
+	}
+
+    pollSlide() {
+        if (this.index > this.slides.length - 1) this.index = 0;
+		if (this.slides.length !== 0) {
+			const slide = this.slides[this.index];
+			this.currentSlide = slide.data;
+			this.index++;
+			setTimeout(() => {
+				this.pollSlide();
+            }, slide.interval);
+            activePresence.register();
+		} else {
+			this.currentSlide = {};
+			setTimeout(() => {
+				this.pollSlide();
+			}, MIN_SLIDE_TIME);
+		}
+    }
+
+    addSlide(id, data, interval) {
+        if (this.hasSlide(id)) return this.updateSlide(id, data, interval);
+        const slide = new SlideshowSlide(id, data, interval);
+        this.slides.push(slide);
+        return slide;
+    }
+
+    deleteSlide(id) {
+        this.slides = this.slides.filter(slide => slide.id !== id);
+    }
+
+    deleteAllSlides() {
+        this.slides = [];
+        this.currentSlide = {};
+    }
+
+    updateSlide(id, data = null, interval = null) {
+		for (const slide of this.slides) {
+			if (slide.id === id) {
+				slide.updateData(data);
+				slide.updateInterval(interval);
+				return slide;
+			}
+		}
+    }
+
+    hasSlide(id) {
+		return this.slides.some(slide => slide.id === id);
+    }
+
+    getSlides() {
+		return this.slides;
+	}
 }
 
 chrome.runtime.onMessage.addListener(function (info, sender, sendResponse) {
