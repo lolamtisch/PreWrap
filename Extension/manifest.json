@@ -19,6 +19,7 @@
     "background": {
         "scripts": [
             "Pages/pages.js",
+            "Pages/locale.js",
             "background.js"
         ],
         "persistent": false
