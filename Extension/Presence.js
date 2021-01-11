@@ -218,10 +218,6 @@ class Presence {
 }
 
 class SlideshowSlide {
-	id;
-	data;
-	_interval;
-
 	constructor(id, data, interval) {
 		this.id = id;
 		this.data = data;
@@ -249,12 +245,11 @@ class SlideshowSlide {
 }
 
 class Slideshow {
-    index = 0;
-    slides = [];
-	currentSlide = {};
-
     constructor() {
-		this.pollSlide()
+        this.index = 0;
+        this.slides = [];
+        this.currentSlide = {};
+		this.pollSlide();
 	}
 
     pollSlide() {
