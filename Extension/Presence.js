@@ -17,24 +17,32 @@ var activePresence = null;
 
 const MIN_SLIDE_TIME = 5000;
 
+var reRegistered = 0;
+
 class Presence {
     constructor(presenceOptions) {
+        reRegistered++;
         this._events = [];
         this.playback = true;
         this.internalPresence = {};
         this.mode = "active";
 
 
-        console.log('######', presenceOptions, mCategory);
+        console.log('######', presenceOptions, mCategory, reRegistered);
         this.clientId = presenceOptions.clientId;
 
         if(mCategory === 'music') {
             this.mode = 'passive';
         }
 
+        if(activePresence) {
+            this._events = activePresence._events;
+            this.internalPresence = activePresence.internalPresence;
+        }
+
         activePresence = this;
 
-        this.register();
+        if(50 > reRegistered) this.register();
     }
 
     register() {
