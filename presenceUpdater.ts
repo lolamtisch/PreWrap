@@ -67,7 +67,7 @@ const readFile = (path: string): string =>
     const premidTypings = join(__dirname, 'Presences', "@types", "premid", "index.d.ts"),
       { compilerOptions: baseTsConfig } = readJson<{
         compilerOptions: CompilerOptions;
-      }>(rslv(__dirname, "./presences/tsconfig.json"));
+      }>(rslv(__dirname, "./Presences/tsconfig.json"));
 
     for (const fileToCompile of filesToCompile) {
       const normalizedPath = normalize(fileToCompile).split(sep);
