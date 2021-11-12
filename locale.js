@@ -3,20 +3,23 @@ const fs = require('fs')
 
 console.log('Generate locale');
 
-getJson('https://api.premid.app/v2/langFile/extension/en')
-    .then((lang) => {
+main();
 
-        langRes = readFile('./Localization/src/Extension/presence.json');
+function main() {
+    let = langRes = {};
 
-        langRes = {...langRes, ...lang};
+    getFolder('./Localization/src/Extension').forEach(el => {
+        const tLang = readFile('./Localization/src/Extension/'+el);
+        langRes = {...langRes, ...tLang};
+    });
 
-        getFolder('./Localization/src/Presence').forEach(el => {
-            const tLang = readFile('./Localization/src/Presence/'+el);
-            langRes = {...langRes, ...tLang};
-        });
+    getFolder('./Localization/src/Presence').forEach(el => {
+        const tLang = readFile('./Localization/src/Presence/'+el);
+        langRes = {...langRes, ...tLang};
+    });
 
-        writeObj(langRes);
-    })
+    writeObj(langRes);
+}
 
 function getFolder(path) {
     return fs.readdirSync(path);
