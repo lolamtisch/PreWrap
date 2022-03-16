@@ -67,7 +67,7 @@ class Presence {
     setActivity(presenceData/*: presenceData = {}*/, playback/*: boolean = true*/) {
         if (presenceData instanceof Slideshow) presenceData = presenceData.currentSlide;
         if(presenceData && Object.keys(presenceData).length) {
-          presenceData.largeImageText = serviceName;
+          presenceData.largeImageText = serviceNameWrap;
         }
         console.log('presence', presenceData);
         this.internalPresence = presenceData;
@@ -107,7 +107,7 @@ class Presence {
             chrome.runtime.sendMessage(
                 {
                     type: "serviceSettings",
-                    data: { service: serviceName, mode: "get", key: key },
+                    data: { service: serviceNameWrap, mode: "get", key: key },
                 },
                 (res) => {
                     console.log(key, res)
@@ -120,14 +120,14 @@ class Presence {
     hideSetting(key) {
         chrome.runtime.sendMessage({
             type: "serviceSettings",
-            data: { service: serviceName, mode: "hidden", key: key, value: true },
+            data: { service: serviceNameWrap, mode: "hidden", key: key, value: true },
         });
     }
 
     showSetting(key) {
         chrome.runtime.sendMessage({
             type: "serviceSettings",
-            data: { service: serviceName, mode: "hidden", key: key, value: false },
+            data: { service: serviceNameWrap, mode: "hidden", key: key, value: false },
         });
     }
 
