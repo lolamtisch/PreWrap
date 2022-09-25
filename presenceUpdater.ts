@@ -96,9 +96,9 @@ const readFile = (path: string): string =>
     console.log("\nFETCHING...\n");
 
     const presences: Array<[Metadata, string]> = glob("./Presences/{websites,programs}/*/*/")
-        .filter((pF) => existsSync(`${pF}/dist/metadata.json`))
+        .filter((pF) => existsSync(`${pF}/metadata.json`))
         .map((pF) => {
-          const file = readFile(`${pF}/dist/metadata.json`);
+          const file = readFile(`${pF}/metadata.json`);
           if (isValidJSON(file)) {
             const data = JSON.parse(file);
             delete data["$schema"];
@@ -120,7 +120,7 @@ const readFile = (path: string): string =>
         let metadata = file[0];
         const path = file[1],
           sources = glob(`${path}*.ts`),
-          metadataFile = readJson<Metadata>(`${path}dist/metadata.json`);
+          metadataFile = readJson<Metadata>(`${path}metadata.json`);
 
         console.log('Getting', path);
 
