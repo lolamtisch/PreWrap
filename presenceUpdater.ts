@@ -38,6 +38,9 @@ const readFile = (path: string): string =>
     fileNames: string[],
     options: CompilerOptions
   ): Promise<void> => {
+    // @ts-ignore
+    options.module = 'CommonJS';
+    delete options.moduleResolution;
     const program = createProgram(fileNames, options),
       emitResult = program.emit(),
       allDiagnostics = getPreEmitDiagnostics(program).concat(
