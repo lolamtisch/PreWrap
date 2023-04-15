@@ -31,13 +31,41 @@ async function initWebNavigationListener() {
 
 }
 
+async function registerScripts(activePages) {
+    console.log('Active Pages', activePages);
+    await chrome.scripting.unregisterContentScripts();
+
+    for (let i = 0; i < activePages.length; i++) {
+        const page = activePages[i];
+        try {
+            var config = getConfig(page);
+            console.log('[R]', page, config);
+
+            const js = [`./Presence.js`, `./Pages/${page}/index.js`];
+
+            if (config.config.readLogs) {
+                js.push(`./logReader.js`);
+            }
+
+            await chrome.scripting.registerContentScripts([{
+                allFrames: true,
+                id: page,
+                js: js,
+                matches: config.matches,
+            }]);
+        } catch (e) {
+            console.error(`Could not register: ${page} |`, e);
+        }
+    }
+}
+
 var originCache = [];
-var activePages = [];
 chrome.storage.sync.get('activePages', (res) => {
+    let activePages = [];
     if (res.activePages && Object.values(res.activePages).length) {
         activePages = res.activePages;
     }
-    initWebNavigationListener();
+    registerScripts(activePages);
 });
 
 chrome.storage.onChanged.addListener(function (changes, namespace) {
@@ -112,32 +140,22 @@ function reloadTabsByOrigin(origins) {
     });
 }
 
-function getFilter() {
-    return new Promise((resolve) => {
-        if (activePages && activePages.length) {
-            console.log('Active Pages', activePages);
-            var filter = [];
-            activePages.forEach(page => {
-                const found = pages.find(p => p.service === page);
-                if (found) {
-                    if (found.regExp) filter.push({urlMatches: found.regExp});
-                    if (found.regExp && found.regExp.includes('[.]html')) filter.push({ originAndPathMatches: found.regExp });
-                    if (Array.isArray(found.url)) {
-                        found.url.forEach(el => {
-                            filter.push({hostEquals: el});
-                        });
-
-                    } else {
-                        filter.push({hostEquals: found.url});
-                    }
-                }
-
-            })
-            resolve(filter);
-            return;
+function getConfig(page) {
+    const navigation = [];
+    const matches = [];
+    const found = pages.find(p => p.service === page);
+    if (found) {
+        if (found.regExp) navigation.push({urlMatches: found.regExp});
+        if (found.regExp && found.regExp.includes('[.]html')) navigation.push({ originAndPathMatches: found.regExp });
+        if (Array.isArray(found.url)) {
+            found.url.forEach(el => {
+                matches.push( '*://'+el+'/*');
+            });
+        } else {
+            matches.push('*://'+found.url+'/*');
         }
-        resolve([]);
-    });
+    }
+    return { config: found, navigation: navigation, matches: matches };
 }
 
 function getIframeFilter() {

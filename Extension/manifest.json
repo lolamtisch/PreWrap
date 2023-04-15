@@ -10,7 +10,8 @@
     "permissions": [
         "storage",
         "activeTab",
-        "webNavigation"
+        "webNavigation",
+        "scripting"
     ],
     "optional_host_permissions": [
         "http://*/*",
