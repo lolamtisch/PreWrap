@@ -1,5 +1,5 @@
 {
-    "manifest_version": 2,
+    "manifest_version": 3,
     "name": "PreWrap",
     "version": "0.0.1",
     "icons": {
@@ -12,19 +12,15 @@
         "activeTab",
         "webNavigation"
     ],
-    "optional_permissions": [
+    "optional_host_permissions": [
         "http://*/*",
         "https://*/*"
     ],
     "background": {
-        "scripts": [
-            "Pages/pages.js",
-            "Pages/locale.js",
-            "background.js"
-        ],
-        "persistent": false
+        "service_worker": "background.js",
+        "type": "module"
     },
-    "browser_action": {
+    "action": {
         "default_popup": "popup.html"
     }
 }

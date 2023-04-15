@@ -1,3 +1,6 @@
+import {pages} from "./Pages/pages.js";
+import {language} from "./Pages/locale.js";
+
 chrome.runtime.onMessageExternal.addListener(function (request, sender, sendResponse) {
     if (request.action == "presence") {
         chrome.tabs.sendMessage(request.tab, {type: 'presence', data: request.info}, function (response) {
@@ -239,7 +242,7 @@ function saveMissingPermission(origin) {
     });
 }
 
-chrome.browserAction.onClicked.addListener(tab => {
+chrome.action.onClicked.addListener(tab => {
     console.log('click');
 });
 
@@ -249,6 +252,7 @@ function findPageWithOrigin(origin) {
 }
 
 function checkIfDomain(meta, url) {
+    let res;
     if (typeof meta.regExp !== "undefined") {
         res = url.match(new RegExp(meta.regExp));
 
@@ -423,9 +427,9 @@ function setBadge() {
         chrome.storage.local.get("missingPermissions", (obj) => {
             if (obj.missingPermissions && obj.missingPermissions.length) miss = true;
             if (miss){
-                chrome.browserAction.setBadgeText({ text: "❌" });
+                chrome.action.setBadgeText({ text: "❌" });
             } else {
-                chrome.browserAction.setBadgeText({ text: "" });
+                chrome.action.setBadgeText({ text: "" });
             }
         });
     });

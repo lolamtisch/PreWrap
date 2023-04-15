@@ -253,7 +253,7 @@ const readFile = (path: string): string =>
         metad.push(el.metadata);
       })
 
-      writeJS(`./Extension/Pages/pages.js`, 'var pages = '+JSON.stringify(metad, null, 2));
+      writeJS(`./Extension/Pages/pages.js`, 'export var pages = '+JSON.stringify(metad, null, 2));
 
     } catch (err) {
       console.error(err.stack || err);

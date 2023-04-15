@@ -39,7 +39,7 @@ function readFile(path) {
 function writeObj(obj) {
     console.log(obj);
     const content = `
-        var language = ${JSON.stringify(obj)};
+        export var language = ${JSON.stringify(obj)};
     `;
     fs.writeFileSync('./Extension/Pages/locale.js', content);
 }
