@@ -148,6 +148,7 @@
 
 <script>
 import Vue from 'vue';
+import { pages } from '../Extension/Pages/pages.js';
 
 var extensionId = "agnaejlkbiiggajjmnpmeheigkflbnoo"; //Chrome
 if (typeof browser !== 'undefined' && typeof chrome !== "undefined") {
