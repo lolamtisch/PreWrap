@@ -31,9 +31,10 @@ async function initWebNavigationListener() {
 
 }
 
-async function registerScripts(activePages) {
+async function registerPages(activePages) {
     console.log('Active Pages', activePages);
     await chrome.scripting.unregisterContentScripts();
+    chrome.webNavigation.onCompleted.removeListener();
 
     for (let i = 0; i < activePages.length; i++) {
         const page = activePages[i];
@@ -41,18 +42,9 @@ async function registerScripts(activePages) {
             var config = getConfig(page);
             console.log('[R]', page, config);
 
-            const js = [`./Presence.js`, `./Pages/${page}/index.js`];
+            await registerScript(page, config);
+            await registerNavigation(page, config);
 
-            if (config.config.readLogs) {
-                js.push(`./logReader.js`);
-            }
-
-            await chrome.scripting.registerContentScripts([{
-                allFrames: true,
-                id: page,
-                js: js,
-                matches: config.matches,
-            }]);
         } catch (e) {
             console.error(`Could not register: ${page} |`, e);
         }
@@ -65,8 +57,39 @@ chrome.storage.sync.get('activePages', (res) => {
     if (res.activePages && Object.values(res.activePages).length) {
         activePages = res.activePages;
     }
-    registerScripts(activePages);
+    registerPages(activePages);
 });
+
+async function registerScript(page, config) {
+    const js = [`./Presence.js`, `./Pages/${page}/index.js`];
+
+    if (config.config.readLogs) {
+        js.push(`./logReader.js`);
+    }
+
+    return chrome.scripting.registerContentScripts([{
+        allFrames: true,
+        id: page,
+        js: js,
+        matches: config.matches,
+    }]);
+}
+
+async function registerNavigation(page, config) {
+    if (config.navigation.length) {
+        return chrome.webNavigation.onCompleted.addListener(data => {
+            const origin = new URL(data.url).origin+'/';
+            console.log('[P]', 'Check Permissions', page, origin)
+            chrome.permissions.contains({ origins: [origin] }, perm => {
+                if (!perm) {
+                    console.error('[P]', 'No Permission', origin);
+                    saveMissingPermission(origin);
+                    return;
+                }
+            });
+        }, { url: config.navigation });
+    }
+}
 
 chrome.storage.onChanged.addListener(function (changes, namespace) {
     for (var key in changes) {
