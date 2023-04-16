@@ -83,12 +83,24 @@ async function registerNavigation(page, config) {
             chrome.permissions.contains({ origins: [origin] }, perm => {
                 if (!perm) {
                     console.error('[P]', 'No Permission', origin);
-                    saveMissingPermission(origin);
+                    addMissingPermission(page, origin);
                     return;
                 }
             });
         }, { url: config.navigation });
     }
+}
+
+function addMissingPermission(page, origin) {
+    chrome.storage.local.get("mv3_missingPermissions", (res) => {
+        var cur = [];
+        if (res.mv3_missingPermissions && Object.values(res.mv3_missingPermissions).length) {
+            cur = res.mv3_missingPermissions;
+        }
+        if (cur.find((el) => el.origin === origin)) return;
+        cur.push({ origin: origin, page: page });
+        chrome.storage.local.set({"mv3_missingPermissions": cur});
+    });
 }
 
 chrome.storage.onChanged.addListener(function (changes, namespace) {

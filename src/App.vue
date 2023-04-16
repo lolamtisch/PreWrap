@@ -18,8 +18,8 @@
                 <h2>Missing Permissions</h2>
                 <div v-if="missingPermissions.length">
                     <h3><span>Pages</span></h3>
-                    <div v-for="iframe in missingPermissions" :key="iframe" class="permP">
-                        {{getHostname(iframe)}}
+                    <div v-for="iframe in missingPermissions" :key="iframe.origin" class="permP">
+                        <div>{{iframe.page}}</div><div>{{iframe.origin}}</div>
                     </div>
                     <br>
                 </div>
@@ -27,7 +27,7 @@
                 <div v-if="sync.missingIframes.length">
                     <h3><span>Iframes</span></h3>
                     <div v-for="iframe in sync.missingIframes" :key="iframe" class="permP">
-                        {{getHostname(iframe)}} <span @click="blockIframe(iframe)">X</span>
+                        {{iframe.page}} <span @click="blockIframe(iframe)">X</span>
                     </div>
                 </div>
 
@@ -203,19 +203,19 @@ export default {
             this.activePages = aPages;
         });
 
-        chrome.storage.local.get("missingPermissions", (res) => {
+        chrome.storage.local.get("mv3_missingPermissions", (res) => {
             var cur = [];
             if (
-                res.missingPermissions &&
-                Object.values(res.missingPermissions).length
+                res.mv3_missingPermissions &&
+                Object.values(res.mv3_missingPermissions).length
             ) {
-                cur = res.missingPermissions;
+                cur = res.mv3_missingPermissions;
             }
             this.missingPermissions = cur;
             chrome.storage.onChanged.addListener(function (changes, namespace) {
                 for (var key in changes) {
                     var storageChange = changes[key];
-                    if (namespace === "local" && key === "missingPermissions") {
+                    if (namespace === "local" && key === "mv3_missingPermissions") {
                         this.missingPermissions = storageChange.newValue;
                     }
                 }
@@ -260,7 +260,23 @@ export default {
     },
     methods: {
         requestPermissions() {
-            this.permSend({ type: "requestPermissions", data: {
+            chrome.storage.sync.get("mv3_permissions", (res) => {
+                var cur = [];
+                if (res.mv3_permissions && Object.values(res.mv3_permissions).length) {
+                    cur = res.mv3_permissions;
+                }
+
+                for (const perm of this.missingPermissions ) {
+                    if (cur.find((el) => el.origin === perm.origin)) continue;
+                    cur.push(perm);
+                }
+
+                chrome.storage.sync.set({"mv3_permissions": cur}, () => this.updatePermissions());
+            });
+
+
+
+            /*this.permSend({ type: "requestPermissions", data: {
                 permissions: { origins: this.missingPermissions.concat(this.sync.missingIframes) },
                 sync: {
                     allowedIframes: this.sync.allowedIframes.concat(this.sync.missingIframes),
@@ -269,7 +285,42 @@ export default {
                 local: {
                     missingPermissions: [],
                 }
-            } });
+            } });*/
+        },
+        async updatePermissions() {
+            console.log(this.activePages);
+            const permissions = [];
+            for (const page of this.activePages.pages) {
+                const config = this.pages.find((p) => p.service === page);
+                console.log(page, config);
+                if (Array.isArray(config.url)) {
+                    config.url.forEach(el => {
+                        permissions.push("http://" + el + "/");
+                        permissions.push('https://' + el + '/');
+                    });
+                } else if(config.url) {
+                    permissions.push("http://" + config.url + "/");
+                    permissions.push('https://' + config.url + '/');
+                }
+            }
+            await new Promise((resolve, reject) => {
+                chrome.storage.sync.get("mv3_permissions", (res) => {
+                    var cur = [];
+                    if (res.mv3_permissions && Object.values(res.mv3_permissions).length) {
+                        cur = res.mv3_permissions;
+                    }
+                    for (const perm of cur) {
+                        permissions.push(perm.origin);
+                    }
+                    resolve();
+                });
+            })
+
+            console.log('Requesting', permissions);
+            chrome.permissions.request({ origins: permissions}, (accepted) => {
+                console.log("Permissions accepted", accepted);
+                // window.close();
+            });
         },
         permSend(request) {
             if (typeof browser !== 'undefined' && typeof chrome !== "undefined") {
