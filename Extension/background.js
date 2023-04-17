@@ -11,7 +11,6 @@ chrome.runtime.onMessageExternal.addListener(function (request, sender, sendResp
     return true;
 });
 
-
 async function init() {
     const activePages = await getActivePages();
     await registerPages(activePages);
@@ -143,23 +142,6 @@ function reloadTabsByOrigin(origins) {
     });
 }
 
-function getIframeFilter() {
-    return new Promise((resolve) => {
-        chrome.storage.sync.get('allowedIframes', (res) => {
-            if (res.allowedIframes && Object.values(res.allowedIframes).length) {
-                console.log('AllowedIframes', res.allowedIframes);
-                var filter = [];
-                res.allowedIframes.forEach(ifr => {
-                    filter.push({ hostEquals: ifr.replace(/(^https?:|\/)/gi, '') });
-                })
-                resolve(filter);
-                return;
-            }
-            resolve([]);
-        })
-    });
-}
-
 function iframeNavigationListener(data) {
     console.log('####Iframe####', data);
     chrome.tabs.get(data.tabId, (tab) => {
@@ -186,67 +168,8 @@ function iframeNavigationListener(data) {
     })
 }
 
-function navigationListener(data) {
-    console.log('####Content####', data);
-    const permConfig = { origins: [new URL(data.url).origin+'/'] };
-    chrome.permissions.contains(permConfig, perm => {
-        console.log('Permission', perm);
-        if (!perm) {
-
-            console.error("No Permission", permConfig);
-            saveMissingPermission(permConfig.origins[0]);
-            return;
-        }
-
-        var page = findPageWithOrigin(permConfig.origins[0]);
-        if (!page) {
-            page = findPageWithOrigin(data.url);
-        }
-
-        if (!page) {
-            console.error('No Page found for', permConfig.origins[0]);
-            return
-        }
-        console.log("Inject", page.service);
-
-        if (data.frameId) {
-            console.log('Do not inject root page script in iframes');
-            return;
-        }
-
-        chrome.tabs.executeScript(data.tabId, {
-            file: "Presence.js",
-            frameId: data.frameId,
-        });
-        chrome.tabs.executeScript(data.tabId, {
-            file: "Pages/"+page.service+"/index.js",
-            frameId: data.frameId,
-        });
-
-        if (page.readLogs) {
-            console.log('Inject log reader');
-            chrome.tabs.executeScript(data.tabId, {
-                file: "logReader.js",
-                frameId: data.frameId,
-            });
-        }
-    });
-}
-
-function saveMissingPermission(origin) {
-    chrome.storage.local.get("missingPermissions", (res) => {
-        var cur = [];
-        if (res.missingPermissions && Object.values(res.missingPermissions).length) {
-            cur = res.missingPermissions;
-        }
-        if (cur.find((el) => el === origin)) return;
-        cur.push(origin);
-        chrome.storage.local.set({"missingPermissions": cur});
-    });
-}
-
-chrome.action.onClicked.addListener(tab => {
-    console.log('click');
+chrome.action.onClicked.addListener(async tab => {
+    await setBadge();
 });
 
 function findPageWithOrigin(origin) {
@@ -366,60 +289,6 @@ function serviceSettings(options) {
             }
         });
     })
-}
-
-// checkForMissingPermissions();
-function checkForMissingPermissions() {
-    iframePermCheck();
-    cleanUpPermissions();
-    function iframePermCheck() {
-        chrome.storage.sync.get(["allowedIframes", "missingIframes"], (res) => {
-            var allowed = [];
-            var missing = [];
-            if (res.allowedIframes && Object.values(res.allowedIframes).length) {
-                allowed = res.allowedIframes;
-            }
-            if (res.missingIframes && Object.values(res.missingIframes).length) {
-                missing = res.missingIframes;
-            }
-
-            Promise.all(allowed.map(al => {
-                return new Promise((resolve) => {
-                    chrome.permissions.contains({ origins: [al] }, (perm) => {
-                        if (!perm && !missing.includes(al)) {
-                            missing.push(al);
-                            resolve();
-                        }
-                    });
-                })
-            })).then(() => {
-                chrome.storage.sync.set({ missingIframes: missing });
-            })
-        });
-    }
-    function cleanUpPermissions() {
-        chrome.storage.sync.get(["allowedIframes"], (res) => {
-            var allowedIframes = [];
-            if (res.allowedIframes && Object.values(res.allowedIframes).length) {
-                allowedIframes = res.allowedIframes;
-            }
-            chrome.permissions.getAll((perms) => {
-                console.log('Active Permissions', perms);
-                if (perms.origins && perms.origins.length) {
-                    const removePerm = perms.origins.filter((origin) => {
-                        if (allowedIframes.includes(origin) || allowedIframes.includes(origin.replace('*', ''))) return false;
-                        if (findPageWithOrigin(origin)) return false;
-                        if (/^https?:\/\/\d+/.test(origin)) return false;
-                        return true;
-                    });
-                    if (removePerm) {
-                        console.log('Unneeded permissions', removePerm);
-                        chrome.permissions.remove({origins: removePerm});
-                    }
-                }
-            });
-        });
-    }
 }
 
 async function setBadge() {
