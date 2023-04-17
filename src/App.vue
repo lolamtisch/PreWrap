@@ -283,41 +283,14 @@ export default {
                 window.close();
             });
         },
-        permSend(request) {
-            if (typeof browser !== 'undefined' && typeof chrome !== "undefined") {
-                chrome.permissions.request(request.data.permissions, (accepted) => {
-                    console.log("Permissions accepted", accepted);
-                    if (request.data.sync) chrome.storage.sync.set(request.data.sync);
-                    if (request.data.local) chrome.storage.local.set(request.data.local);
-                    window.close();
-                });
-            } else {
-                chrome.runtime.sendMessage(request);
-                window.close();
-            }
-        },
         getHostname(url) {
             return new URL(url).hostname;
         },
         togglePage(meta, active = false) {
             this.activePages.togglePage(meta);
 
-            if (this.activePages.isPageActive(meta) && this.currentTabUrl) {
-                var origins = [];
-                if (active) origins.push(this.currentTabUrl);
-                if (Array.isArray(meta.url)) {
-                    meta.url.forEach(el => {
-                        origins.push("http://" + el + "/");
-                        origins.push('https://' + el + '/');
-                    });
-                } else if(meta.url) {
-                    origins.push("http://" + meta.url + "/");
-                    origins.push("https://" + meta.url + "/");
-                }
-                console.log(origins);
-                this.permSend({ type: "requestPermissions", data: {
-                    permissions: { origins: origins }
-                }});
+            if (this.activePages.isPageActive(meta)) {
+                this.updatePermissions();
             }
         },
         blockIframe(origin) {
