@@ -25,7 +25,7 @@ async function registerPages(activePages) {
     for (let i = 0; i < activePages.length; i++) {
         const page = activePages[i];
         try {
-            var config = getConfig(page);
+            var config = await getConfig(page);
             console.log('[R]', page, config);
 
             await registerScript(page, config);

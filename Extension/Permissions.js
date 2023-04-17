@@ -4,21 +4,9 @@ export async function neededPermissions() {
     const activePages = await getActivePages();
     const permissions = [];
     for (const page of activePages) {
-        const config = getConfig(page);
+        const config = await getConfig(page);
         permissions.push(...config.permissions);
     }
-    await new Promise((resolve, reject) => {
-        chrome.storage.sync.get("mv3_permissions", (res) => {
-            var cur = [];
-            if (res.mv3_permissions && Object.values(res.mv3_permissions).length) {
-                cur = res.mv3_permissions;
-            }
-            for (const perm of cur) {
-                permissions.push(perm.origin);
-            }
-            resolve();
-        });
-    })
     console.log('Permissions', permissions);
     return permissions;
 }
@@ -36,12 +24,15 @@ export async function missingPermissions() {
     })
 }
 
-export function getConfig(page) {
+export async function getConfig(page) {
     const navigation = [];
     const matches = [];
     const permissions = [];
     const found = pages.find(p => p.service === page);
+    let customPermissions = [];
     if (found) {
+        customPermissions = await getPageCustomPermissions(page);
+
         if (found.regExp) navigation.push({urlMatches: found.regExp});
         if (found.regExp && found.regExp.includes('[.]html')) navigation.push({ originAndPathMatches: found.regExp });
         if (Array.isArray(found.url)) {
@@ -55,8 +46,13 @@ export function getConfig(page) {
             permissions.push("http://" + found.url + "/");
             permissions.push('https://' + found.url + '/');
         }
+
+        for (const custom of customPermissions) {
+            permissions.push(custom);
+            matches.push(custom);
+        }
     }
-    return { config: found, navigation: navigation, matches: matches, permissions: permissions };
+    return { config: found, navigation: navigation, matches: matches, permissions: permissions, customPermissions: customPermissions };
 }
 
 export async function getActivePages() {
@@ -67,6 +63,19 @@ export async function getActivePages() {
                 activePages = res.activePages;
             }
             resolve(activePages);
+        });
+    })
+}
+
+export async function getPageCustomPermissions(page) {
+    return new Promise((resolve, reject) => {
+        chrome.storage.sync.get("mv3_permissions", (res) => {
+            var cur = [];
+            if (res.mv3_permissions && Object.values(res.mv3_permissions).length) {
+                cur = res.mv3_permissions;
+            }
+            const found = cur.filter((el) => el.page === page).map((el) => el.origin);
+            resolve(found);
         });
     })
 }
