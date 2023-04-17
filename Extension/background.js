@@ -1,5 +1,6 @@
 import {pages} from "./Pages/pages.js";
 import {language} from "./Pages/locale.js";
+import {getConfig, missingPermissions} from "./Permissions.js";
 
 chrome.runtime.onMessageExternal.addListener(function (request, sender, sendResponse) {
     if (request.action == "presence") {
@@ -173,24 +174,6 @@ function reloadTabsByOrigin(origins) {
             chrome.tabs.reload(tab.id);
         })
     });
-}
-
-function getConfig(page) {
-    const navigation = [];
-    const matches = [];
-    const found = pages.find(p => p.service === page);
-    if (found) {
-        if (found.regExp) navigation.push({urlMatches: found.regExp});
-        if (found.regExp && found.regExp.includes('[.]html')) navigation.push({ originAndPathMatches: found.regExp });
-        if (Array.isArray(found.url)) {
-            found.url.forEach(el => {
-                matches.push( '*://'+el+'/*');
-            });
-        } else {
-            matches.push('*://'+found.url+'/*');
-        }
-    }
-    return { config: found, navigation: navigation, matches: matches };
 }
 
 function getIframeFilter() {
@@ -418,7 +401,7 @@ function serviceSettings(options) {
     })
 }
 
-checkForMissingPermissions();
+// checkForMissingPermissions();
 function checkForMissingPermissions() {
     iframePermCheck();
     cleanUpPermissions();
@@ -473,17 +456,11 @@ function checkForMissingPermissions() {
 }
 
 setBadge();
-function setBadge() {
-    let miss = false;
-    chrome.storage.sync.get("missingIframes", (obj) => {
-        if (obj.missingIframes && obj.missingIframes.length) miss = true;
-        chrome.storage.local.get("missingPermissions", (obj) => {
-            if (obj.missingPermissions && obj.missingPermissions.length) miss = true;
-            if (miss){
-                chrome.action.setBadgeText({ text: "❌" });
-            } else {
-                chrome.action.setBadgeText({ text: "" });
-            }
-        });
-    });
+async function setBadge() {
+    const missing = await missingPermissions();
+    if (missing.length){
+        chrome.action.setBadgeText({ text: "❌" });
+    } else {
+        chrome.action.setBadgeText({ text: "" });
+    }
 }

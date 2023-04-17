@@ -149,6 +149,7 @@
 <script>
 import Vue from 'vue';
 import { pages } from '../Extension/Pages/pages.js';
+import { neededPermissions } from '../Extension/Permissions.js';
 
 var extensionId = "agnaejlkbiiggajjmnpmeheigkflbnoo"; //Chrome
 if (typeof browser !== 'undefined' && typeof chrome !== "undefined") {
@@ -271,55 +272,15 @@ export default {
                     cur.push(perm);
                 }
 
-                chrome.storage.sync.set({"mv3_permissions": cur}, () => this.updatePermissions());
+                chrome.storage.sync.set({"mv3_permissions": cur}, () => chrome.storage.local.set({"mv3_missingPermissions": []}, () => this.updatePermissions()));
             });
-
-
-
-            /*this.permSend({ type: "requestPermissions", data: {
-                permissions: { origins: this.missingPermissions.concat(this.sync.missingIframes) },
-                sync: {
-                    allowedIframes: this.sync.allowedIframes.concat(this.sync.missingIframes),
-                    missingIframes: []
-                },
-                local: {
-                    missingPermissions: [],
-                }
-            } });*/
         },
         async updatePermissions() {
-            console.log(this.activePages);
-            const permissions = [];
-            for (const page of this.activePages.pages) {
-                const config = this.pages.find((p) => p.service === page);
-                console.log(page, config);
-                if (Array.isArray(config.url)) {
-                    config.url.forEach(el => {
-                        permissions.push("http://" + el + "/");
-                        permissions.push('https://' + el + '/');
-                    });
-                } else if(config.url) {
-                    permissions.push("http://" + config.url + "/");
-                    permissions.push('https://' + config.url + '/');
-                }
-            }
-            await new Promise((resolve, reject) => {
-                chrome.storage.sync.get("mv3_permissions", (res) => {
-                    var cur = [];
-                    if (res.mv3_permissions && Object.values(res.mv3_permissions).length) {
-                        cur = res.mv3_permissions;
-                    }
-                    for (const perm of cur) {
-                        permissions.push(perm.origin);
-                    }
-                    resolve();
-                });
-            })
-
+            const permissions = await neededPermissions();
             console.log('Requesting', permissions);
             chrome.permissions.request({ origins: permissions}, (accepted) => {
                 console.log("Permissions accepted", accepted);
-                // window.close();
+                window.close();
             });
         },
         permSend(request) {
