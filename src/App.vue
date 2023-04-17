@@ -14,6 +14,19 @@
                 <a v-if="healthError.link" :href="healthError.link.href" target="_blank">{{healthError.link.text}}</a>
             </div>
 
+            <div class="perm box" v-if="permissionsToRequest.length">
+                <h2>Missing Permissions</h2>
+                <div v-if="permissionsToRequest.length">
+                    <div v-for="perm in permissionsToRequest" :key="perm" class="permP">
+                        <div>{{perm.replace(/(^https?:\/\/|\/$)/gi, '')}}</div>
+                    </div>
+                    <br>
+                </div>
+                <div class="missingPermission" v-if="permissionsToRequest.length">
+                    <button id="request" @click="updatePermissions">Add Permissions</button>
+                </div>
+            </div>
+
             <div class="perm box" v-if="missingPermissions.length || sync.missingIframes.length">
                 <h2>Missing Permissions</h2>
                 <div v-if="missingPermissions.length">
@@ -149,7 +162,7 @@
 <script>
 import Vue from 'vue';
 import { pages } from '../Extension/Pages/pages.js';
-import { neededPermissions } from '../Extension/Permissions.js';
+import { neededPermissions, missingPermissions } from '../Extension/Permissions.js';
 
 var extensionId = "agnaejlkbiiggajjmnpmeheigkflbnoo"; //Chrome
 if (typeof browser !== 'undefined' && typeof chrome !== "undefined") {
@@ -165,17 +178,19 @@ export default {
             matchedPages: [],
             activePages: { pages: {} },
             missingPermissions: [],
+            permissionsToRequest: [],
             searchWord: '',
             currentTabUrl: '',
             currentTabId: 0,
             sync: {
+                mv3_permissions: [],
                 allowedIframes: [],
                 missingIframes: [],
                 blockedIframes: [],
             }
         };
     },
-    created: function () {
+    created: async function () {
         this.extensionHealth();
         chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
             this.currentTabUrl = tabs[0].url;
@@ -238,6 +253,8 @@ export default {
                 }
             });
         });
+
+        this.permissionsToRequest = await missingPermissions();
     },
     watch: {
         sync: {
