@@ -70,3 +70,27 @@ export async function getActivePages() {
         });
     })
 }
+
+export function addMissingRequest(page, origin) {
+    chrome.storage.local.get("mv3_missingPermissions", (res) => {
+        var cur = [];
+        if (res.mv3_missingPermissions && Object.values(res.mv3_missingPermissions).length) {
+            cur = res.mv3_missingPermissions;
+        }
+        if (cur.find((el) => el.origin === origin)) return;
+        cur.push({ origin: origin, page: page });
+        chrome.storage.local.set({"mv3_missingPermissions": cur});
+    });
+}
+
+export function hasMissingRequests() {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get("mv3_missingPermissions", (res) => {
+            var cur = [];
+            if (res.mv3_missingPermissions && Object.values(res.mv3_missingPermissions).length) {
+                cur = res.mv3_missingPermissions;
+            }
+            resolve(cur.length > 0);
+        });
+    })
+}

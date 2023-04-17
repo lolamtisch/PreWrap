@@ -1,6 +1,6 @@
 import {pages} from "./Pages/pages.js";
 import {language} from "./Pages/locale.js";
-import {getConfig, missingPermissions} from "./Permissions.js";
+import {getConfig, missingPermissions, hasMissingRequests, getActivePages, addMissingRequest} from "./Permissions.js";
 
 chrome.runtime.onMessageExternal.addListener(function (request, sender, sendResponse) {
     if (request.action == "presence") {
@@ -11,25 +11,11 @@ chrome.runtime.onMessageExternal.addListener(function (request, sender, sendResp
     return true;
 });
 
-async function initWebNavigationListener() {
-    conent();
-    ifr();
-    async function conent() {
-        chrome.webNavigation.onCompleted.removeListener(navigationListener);
-        var config = await getFilter();
-        console.log('Add navigation listener', config);
-        if (!config.length) return;
-        chrome.webNavigation.onCompleted.addListener(navigationListener, { url: config });
-    }
 
-    async function ifr() {
-        chrome.webNavigation.onCompleted.removeListener(iframeNavigationListener);
-        var config = await getIframeFilter();
-        console.log("Add Iframe navigation listener", config);
-        if (!config.length) return;
-        chrome.webNavigation.onCompleted.addListener(iframeNavigationListener, { url: config });
-    }
-
+async function init() {
+    const activePages = await getActivePages();
+    await registerPages(activePages);
+    await setBadge();
 }
 
 async function registerPages(activePages) {
@@ -53,13 +39,6 @@ async function registerPages(activePages) {
 }
 
 var originCache = [];
-chrome.storage.sync.get('activePages', (res) => {
-    let activePages = [];
-    if (res.activePages && Object.values(res.activePages).length) {
-        activePages = res.activePages;
-    }
-    registerPages(activePages);
-});
 
 async function registerScript(page, config) {
     const js = [`./Presence.js`, `./Pages/${page}/index.js`];
@@ -84,7 +63,7 @@ async function registerNavigation(page, config) {
             chrome.permissions.contains({ origins: [origin] }, perm => {
                 if (!perm) {
                     console.error('[P]', 'No Permission', origin);
-                    addMissingPermission(page, origin);
+                    addMissingRequest(page, origin);
                     return;
                 }
             });
@@ -92,41 +71,39 @@ async function registerNavigation(page, config) {
     }
 }
 
-function addMissingPermission(page, origin) {
-    chrome.storage.local.get("mv3_missingPermissions", (res) => {
-        var cur = [];
-        if (res.mv3_missingPermissions && Object.values(res.mv3_missingPermissions).length) {
-            cur = res.mv3_missingPermissions;
-        }
-        if (cur.find((el) => el.origin === origin)) return;
-        cur.push({ origin: origin, page: page });
-        chrome.storage.local.set({"mv3_missingPermissions": cur});
-    });
-}
-
-chrome.storage.onChanged.addListener(function (changes, namespace) {
+chrome.storage.onChanged.addListener(async function (changes, namespace) {
     for (var key in changes) {
         var storageChange = changes[key];
         console.log(
-        'Storage key "%s" in namespace "%s" changed. ' +
-            'Old value was "%s", new value is "%s".',
-        key,
-        namespace,
-        storageChange.oldValue,
-        storageChange.newValue
+            'Storage key "%s" in namespace "%s" changed. ',
+            key,
+            namespace,
         );
-        if (namespace === 'sync' && (key === 'activePages')) {
-            originCache = [];
-            activePages = storageChange.newValue;
-        }
-        if (namespace === 'sync' && (key === 'activePages' || key === 'allowedIframes')) {
-            initWebNavigationListener();
-        }
-        if (key === "missingPermissions" || key === "missingIframes") {
-            setBadge();
+        switch (key) {
+            case 'activePages':
+                await registerPages(storageChange.newValue);
+                await setBadge();
+                break;
+            case 'mv3_missingPermissions':
+                await setBadge();
+                break;
         }
     }
 });
+chrome.permissions.onAdded.addListener(
+    async function () {
+        const activePages = await getActivePages();
+        await registerPages(activePages);
+        await setBadge();
+    }
+)
+chrome.permissions.onRemoved.addListener(
+    async function () {
+        const activePages = await getActivePages();
+        await registerPages(activePages);
+        await setBadge();
+    }
+)
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     switch (request.type) {
@@ -445,12 +422,13 @@ function checkForMissingPermissions() {
     }
 }
 
-setBadge();
 async function setBadge() {
     const missing = await missingPermissions();
-    if (missing.length){
+    if (missing.length || await hasMissingRequests()){
         chrome.action.setBadgeText({ text: "❌" });
     } else {
         chrome.action.setBadgeText({ text: "" });
     }
 }
+
+init();
