@@ -29,12 +29,19 @@ export async function getConfig(page) {
     const matches = [];
     const permissions = [];
     const found = pages.find(p => p.service === page);
+    const iframe = {
+        navigation: [],
+        matches: [],
+        permissions: [],
+    }
     let customPermissions = [];
     if (found) {
         customPermissions = await getPageCustomPermissions(page);
 
         if (found.regExp) navigation.push({urlMatches: found.regExp});
         if (found.regExp && found.regExp.includes('[.]html')) navigation.push({ originAndPathMatches: found.regExp });
+        if (found.iFrameRegExp) iframe.navigation.push({urlMatches: found.iFrameRegExp});
+        if (found.iFrameRegExp && found.iFrameRegExp.includes('[.]html')) iframe.navigation.push({ originAndPathMatches: found.iFrameRegExp });
         if (Array.isArray(found.url)) {
             found.url.forEach(el => {
                 matches.push( '*://' + el + '/*');
@@ -48,11 +55,16 @@ export async function getConfig(page) {
         }
 
         for (const custom of customPermissions) {
-            permissions.push(custom);
-            matches.push(custom);
+            if (custom.iframe) {
+                iframe.permissions.push(custom.origin);
+                iframe.matches.push(custom.origin);
+            } else {
+                permissions.push(custom.origin);
+                matches.push(custom.origin);
+            }
         }
     }
-    return { config: found, navigation: navigation, matches: matches, permissions: permissions, customPermissions: customPermissions };
+    return { config: found, navigation: navigation, matches: matches, permissions: permissions, customPermissions: customPermissions, iframe: iframe };
 }
 
 export async function getActivePages() {
@@ -74,20 +86,20 @@ export async function getPageCustomPermissions(page) {
             if (res.mv3_permissions && Object.values(res.mv3_permissions).length) {
                 cur = res.mv3_permissions;
             }
-            const found = cur.filter((el) => el.page === page).map((el) => el.origin);
+            const found = cur.filter((el) => el.page === page);
             resolve(found);
         });
     })
 }
 
-export function addMissingRequest(page, origin) {
+export function addMissingRequest(page, origin, iframe) {
     chrome.storage.local.get("mv3_missingPermissions", (res) => {
         var cur = [];
         if (res.mv3_missingPermissions && Object.values(res.mv3_missingPermissions).length) {
             cur = res.mv3_missingPermissions;
         }
         if (cur.find((el) => el.origin === origin)) return;
-        cur.push({ origin: origin, page: page });
+        cur.push({ origin: origin, page: page, iframe: iframe });
         chrome.storage.local.set({"mv3_missingPermissions": cur});
     });
 }

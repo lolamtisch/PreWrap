@@ -27,24 +27,24 @@
                 </div>
             </div>
 
-            <div class="perm box" v-if="missingPermissions.length || sync.missingIframes.length">
+            <div class="perm box" v-if="missingOrigins.length || missingIframes.length">
                 <h2>Missing Permissions</h2>
-                <div v-if="missingPermissions.length">
+                <div v-if="missingOrigins.length">
                     <h3><span>Pages</span></h3>
-                    <div v-for="iframe in missingPermissions" :key="iframe.origin" class="permP">
+                    <div v-for="iframe in missingOrigins" :key="iframe.origin" class="permP">
                         <div>{{iframe.page}}</div><div>{{iframe.origin}}</div>
                     </div>
                     <br>
                 </div>
 
-                <div v-if="sync.missingIframes.length">
+                <div v-if="missingIframes.length">
                     <h3><span>Iframes</span></h3>
-                    <div v-for="iframe in sync.missingIframes" :key="iframe" class="permP">
-                        {{iframe.page}} <span @click="blockIframe(iframe)">X</span>
+                    <div v-for="iframe in missingIframes" :key="iframe" class="permP">
+                        <div>{{iframe.page}}</div><div>{{iframe.origin}}</div> <span @click="blockIframe(iframe)">X</span>
                     </div>
                 </div>
 
-                <div class="missingPermission" v-if="missingPermissions.length || sync.missingIframes.length">
+                <div class="missingPermission" v-if="missingPermissions.length || missingIframes.length">
                     <button id="request" @click="requestPermissions">Request Permissions</button>
                 </div>
             </div>
@@ -274,7 +274,13 @@ export default {
             return this.pages.filter((p) => {
                 return p.service.toLowerCase().includes(this.searchWord.toLowerCase());
             });
-        }
+        },
+        missingOrigins() {
+            return this.missingPermissions.filter((p) => !p.iframe);
+        },
+        missingIframes() {
+            return this.missingPermissions.filter((p) => p.iframe);
+        },
     },
     methods: {
         requestPermissions() {

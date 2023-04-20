@@ -29,7 +29,8 @@ async function registerPages(activePages) {
             console.log('[R]', page, config);
 
             await registerScript(page, config);
-            await registerNavigation(page, config);
+            await registerNavigation(page, config, false);
+            await registerNavigation(page, config, true);
 
         } catch (e) {
             console.error(`Could not register: ${page} |`, e);
@@ -54,19 +55,21 @@ async function registerScript(page, config) {
     }]);
 }
 
-async function registerNavigation(page, config) {
-    if (config.navigation.length) {
+async function registerNavigation(page, config, iframe) {
+    const nav = iframe ? config.iframe.navigation : config.navigation;
+    if (nav.length) {
         return chrome.webNavigation.onCompleted.addListener(data => {
             const origin = new URL(data.url).origin+'/';
-            console.log('[P]', 'Check Permissions', page, origin)
+            console.log('[P]', 'Check Permissions', iframe ? page+' (iframe)': page, origin)
             chrome.permissions.contains({ origins: [origin] }, perm => {
                 if (!perm) {
+                    if (iframe && !checkIfTabOriginIsAllowed(tabId)) return;
                     console.error('[P]', 'No Permission', origin);
-                    addMissingRequest(page, origin);
+                    addMissingRequest(page, origin, iframe);
                     return;
                 }
             });
-        }, { url: config.navigation });
+        }, { url: nav });
     }
 }
 
@@ -140,6 +143,21 @@ function reloadTabsByOrigin(origins) {
             chrome.tabs.reload(tab.id);
         })
     });
+}
+
+async function checkIfTabOriginIsAllowed(tabId) {
+    return new Promise((resolve, reject) => {
+        chrome.tabs.get(tabId, (tab) => {
+            const origin = new URL(tab.url).origin+'/';
+            chrome.permissions.contains({ origins: [origin] }, perm => {
+                resolve(perm);
+                if (!perm) {
+                    console.error('[P]', 'Origin not allowed', origin);
+                }
+                resolve(perm);
+            });
+        });
+    })
 }
 
 function iframeNavigationListener(data) {
