@@ -32,7 +32,6 @@ export async function getConfig(page) {
     const iframe = {
         navigation: [],
         matches: [],
-        permissions: [],
     }
     let customPermissions = [];
     if (found) {
@@ -55,12 +54,11 @@ export async function getConfig(page) {
         }
 
         for (const custom of customPermissions) {
+            permissions.push(custom.origin);
             if (custom.iframe) {
-                iframe.permissions.push(custom.origin);
-                iframe.matches.push(custom.origin);
+                iframe.matches.push(custom.origin.replace(/\/$/g, '/*'));
             } else {
-                permissions.push(custom.origin);
-                matches.push(custom.origin);
+                matches.push(custom.origin.replace(/\/$/g, '/*'));
             }
         }
     }

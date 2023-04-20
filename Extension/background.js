@@ -29,6 +29,7 @@ async function registerPages(activePages) {
             console.log('[R]', page, config);
 
             await registerScript(page, config);
+            await registerIframe(page, config);
             await registerNavigation(page, config, false);
             await registerNavigation(page, config, true);
 
@@ -55,6 +56,18 @@ async function registerScript(page, config) {
     }]);
 }
 
+async function registerIframe(page, config) {
+    if (!config.config.iframe || !config.iframe.matches.length) return;
+    const js = [`./Iframe.js`, `./Pages/${page}/iframe.js`];
+
+    return chrome.scripting.registerContentScripts([{
+        allFrames: true,
+        id: page+'-iframe',
+        js: js,
+        matches: config.iframe.matches,
+    }]);
+}
+
 async function registerNavigation(page, config, iframe) {
     const nav = iframe ? config.iframe.navigation : config.navigation;
     if (nav.length) {
@@ -63,7 +76,7 @@ async function registerNavigation(page, config, iframe) {
             console.log('[P]', 'Check Permissions', iframe ? page+' (iframe)': page, origin)
             chrome.permissions.contains({ origins: [origin] }, perm => {
                 if (!perm) {
-                    if (iframe && !checkIfTabOriginIsAllowed(tabId)) return;
+                    if (iframe && !checkIfTabOriginIsAllowed(data.tabId)) return;
                     console.error('[P]', 'No Permission', origin);
                     addMissingRequest(page, origin, iframe);
                     return;
