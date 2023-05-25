@@ -3,7 +3,7 @@
         <div class="header">
             <a @click="active='home'" :class="{active: active==='home'}">Home</a>
             <a @click="active='active'" :class="{active: active==='active'}">Active</a>
-            <a @click="active='blocked'" :class="{active: active==='blocked'}">Blocked</a>
+            <a @click="active='blocked'" :class="{active: active==='blocked'}">Permissions</a>
             <a @click="active='search'" :class="{active: active==='search'}">Search</a>
         </div>
         <div class="section" v-if="active==='home'">
@@ -124,18 +124,20 @@
             </div>
         </div>
         <div class="section" v-if="active==='blocked'">
-            <div class="perm box" v-if="sync.blockedIframes.length">
-                <h2>Blocked Domains</h2>
 
-                <div v-if="sync.blockedIframes.length">
-                    <h3><span>Iframes</span></h3>
-                    <div v-for="iframe in sync.blockedIframes" :key="iframe" class="permP">
-                        {{getHostname(iframe)}} <span @click="deBlockIframe(iframe)">X</span>
-                    </div>
+            <div class="perm box" v-if="customDomains && customDomains.length">
+                <h2>Permissions</h2>
+
+                <div v-for="page in customDomains" :key="page.page" class="perm box">
+                    {{ page.page }}
+                    <div v-for="origin in page.origins" :key="origin" class="permP">
+                      {{origin.iframe ? 'Iframe:' : ''}} {{ origin.origin }}
+                      <span @click="removeCustomDomain(origin)">X</span>
+                  </div>
                 </div>
             </div>
             <div v-else>
-                <h3><span>No blocked domains</span></h3>
+                <h3><span>No active Permissions</span></h3>
             </div>
         </div>
         <div class="section" v-if="active==='search'">
@@ -281,6 +283,17 @@ export default {
         missingIframes() {
             return this.missingPermissions.filter((p) => p.iframe);
         },
+        customDomains() {
+          var ac = this.activePages.pages;
+          if (!ac.length) return [];
+          const domains = this.sync.mv3_permissions.filter((p) => ac.includes(p.page));
+          const grouped = {};
+          domains.forEach((d) => {
+            if (!grouped[d.page]) grouped[d.page] = {page: d.page, origins: []};
+            grouped[d.page].origins.push(d);
+          });
+          return Object.values(grouped);
+        },
     },
     methods: {
         requestPermissions() {
@@ -305,6 +318,9 @@ export default {
                 console.log("Permissions accepted", accepted);
                 window.close();
             });
+        },
+        removeCustomDomain(origin) {
+            this.sync.mv3_permissions = this.sync.mv3_permissions.filter((p) => p !== origin);
         },
         getHostname(url) {
             return new URL(url).hostname;

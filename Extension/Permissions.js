@@ -1,10 +1,15 @@
 import {pages} from "./Pages/pages.js";
 
-export async function neededPermissions() {
+async function getActivePageConfigs() {
     const activePages = await getActivePages();
+    const configs = await Promise.all(activePages.map((page) => getConfig(page)));
+    return configs;
+}
+
+export async function neededPermissions() {
+    const configs = await getActivePageConfigs();
     const permissions = [];
-    for (const page of activePages) {
-        const config = await getConfig(page);
+    for (const config of configs) {
         permissions.push(...config.permissions);
     }
     console.log('Permissions', permissions);
