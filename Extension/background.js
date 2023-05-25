@@ -98,6 +98,8 @@ chrome.storage.onChanged.addListener(async function (changes, namespace) {
             case 'activePages':
                 await registerPages(storageChange.newValue);
                 await setBadge();
+                const diff = storageChange.newValue.filter(x => !storageChange.oldValue.includes(x));
+                if (diff.length) await reloadTabsByOrigin(diff);
                 break;
             case 'mv3_missingPermissions':
                 await setBadge();
@@ -149,7 +151,17 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     }
 });
 
-function reloadTabsByOrigin(origins) {
+async function reloadTabsByOrigin(pages) {
+    const origins = [];
+
+    await Promise.all(
+        pages.map(async (page) => {
+            const config = await getConfig(page);
+            console.log(config);
+            origins.push(...config.permissions);
+        })
+    );
+
     chrome.tabs.query({ url: origins.map(el => el+'*')}, (tabs) => {
         console.log('Reload tabs', tabs);
         tabs.forEach(tab => {
