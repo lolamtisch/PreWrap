@@ -123,7 +123,7 @@ chrome.permissions.onRemoved.addListener(
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     switch (request.type) {
         case "iframeDomains":
-            checkIframeDomains(request.data.domains);
+            checkIframeDomains(request.data.page, request.data.domains);
             sendResponse();
             break;
         case "iframeData":
@@ -225,37 +225,17 @@ function checkIfDomain(meta, url) {
     return res;
 }
 
-function checkIframeDomains(domains) {
-    console.log(domains);
+function checkIframeDomains(page, domains) {
+    console.log('Iframes', page, domains);
     if(!domains.length) return;
-    chrome.storage.sync.get(["allowedIframes", "missingIframes", "blockedIframes"], (res) => {
-        var allowed = [];
-        var missing = [];
-        var blocked = [];
-        if (res.allowedIframes && Object.values(res.allowedIframes).length) {
-            allowed = res.allowedIframes;
-        }
-
-        if (res.missingIframes && Object.values(res.missingIframes).length) {
-            missing = res.missingIframes;
-        }
-
-        if (res.blockedIframes && Object.values(res.blockedIframes).length) {
-            blocked = res.blockedIframes;
-        }
-
-        console.log(allowed, missing, blocked);
-
-        domains.forEach(domain => {
-            if (!domain) return;
-            const origin = new URL(domain).origin + "/";
-            if (allowed.includes(origin)) return;
-            if (missing.includes(origin)) return;
-            if (blocked.includes(origin)) return;
-            missing.push(origin);
-        })
-
-        chrome.storage.sync.set({ missingIframes: missing });
+    domains.map(domain => new URL(domain).origin + "/").forEach(origin => {
+        chrome.permissions.contains({ origins: [origin] }, (perm) => {
+            if (!perm) {
+                console.error("[P]", "No Permission", origin);
+                addMissingRequest(page, origin, true);
+                return;
+            }
+        });
     });
 }
 

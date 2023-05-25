@@ -45,3 +45,32 @@ chrome.runtime.onMessage.addListener(function (info, sender, sendResponse) {
         activeIframePresence.callEvent();
     }
 });
+
+setTimeout(() => {
+    setInterval(() => {
+        checkForIframes();
+    }, 3 * 60 * 1000);
+    checkForIframes();
+}, 10000);
+
+function checkForIframes() {
+    if (typeof checkIframe !== "undefined" && checkIframe) {
+        frames = document.getElementsByTagName("iframe");
+        console.log("Frames found", frames.length);
+        var urlsD = [];
+        for (i = 0; i < frames.length; ++i) {
+            let frame = frames[i];
+            if (frame.src) {
+                urlsD.push(frame.src);
+            }
+        }
+        console.log("domains", serviceNameWrap, urlsD);
+        chrome.runtime.sendMessage({
+            type: "iframeDomains",
+            data: {
+                page: serviceNameWrap,
+                domains: urlsD,
+            },
+        });
+    }
+}

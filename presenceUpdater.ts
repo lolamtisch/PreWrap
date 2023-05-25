@@ -211,6 +211,7 @@ const readFile = (path: string): string =>
 
       if(compiledPresences.length < 100) throw 'Less than 100 Presences';
       compiledPresences.forEach((el) => {
+        if (!el) return;
         console.log(`./Extension/Pages/${el.name}/index.js`);
 
         if (!existsSync(`./Extension/Pages/${el.name}`)) {
@@ -220,15 +221,19 @@ const readFile = (path: string): string =>
         var iframeMode = '';
         if(el.metadata.iframe) iframeMode = 'var checkIframe = true;';
 
+        //@ts-ignore
+        const meta = iframeMode+' var serviceNameWrap="'+el.name+'"; var mCategory = "' + el.metadata.category + '"; \n';
+
         writeJS(
           `./Extension/Pages/${el.name}/index.js`,
           //@ts-ignore
-          iframeMode+' var serviceNameWrap="'+el.name+'"; var mCategory = "' + el.metadata.category + '"; \n' + el.presenceJs
+          meta + el.presenceJs
         );
-        if (el.iframeJs) writeJS(`./Extension/Pages/${el.name}/iframe.js`, el.iframeJs);
+        if (el.iframeJs) writeJS(`./Extension/Pages/${el.name}/iframe.js`, meta + el.iframeJs);
 
         //@ts-ignore
         delete el.metadata.description;
+        //@ts-ignore
         delete el.metadata.version;
 
         //@ts-ignore

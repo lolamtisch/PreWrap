@@ -355,10 +355,11 @@ function checkForIframes() {
                 urlsD.push(frame.src);
             }
         }
-        console.log("domains", urlsD);
+        console.log("domains", serviceNameWrap, urlsD);
         chrome.runtime.sendMessage({
             type: "iframeDomains",
             data: {
+                page: serviceNameWrap,
                 domains: urlsD,
             },
         });
