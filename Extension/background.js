@@ -260,27 +260,36 @@ function serviceSettings(options) {
             return;
         }
         meta = meta[0];
-        const sKey = "settings_" + serId
+        const sKey = "settings_" + serId;
+
+        let settings = [...meta.settings || []];
+
+        settings.push({
+            id: "mss_permanent",
+            title: "Permanent presence",
+            icon: "fad fa-images",
+            value: false,
+        });
         chrome.storage.local.get(sKey, (res) => {
             if (res[sKey] && Object.values(res[sKey]).length) {
-                meta.settings = meta.settings.map( el => {
+                settings = settings.map( el => {
                     var e = res[sKey].find(set => set.id === el.id);
                     if (e) return e;
                     return el;
                 });
             }
 
-            if (!meta.settings) {
+            if (!settings) {
                 resolve();
                 return;
             };
 
             switch (options.mode) {
                 case "all":
-                    resolve(meta.settings);
+                    resolve(settings);
                     break;
                 case "get":
-                    var r = meta.settings.find(s => s.id === options.key);
+                    var r = settings.find(s => s.id === options.key);
                     if (r) {
                         resolve(r.value);
                         return;
@@ -288,21 +297,21 @@ function serviceSettings(options) {
                     resolve();
                     break;
                 case "set":
-                    var r = meta.settings.find(s => s.id === options.key);
+                    var r = settings.find(s => s.id === options.key);
                     if (r) {
                       r.value = options.value;
                       var set = {};
-                      set[sKey] = meta.settings;
+                      set[sKey] = settings;
                       chrome.storage.local.set(JSON.parse(JSON.stringify(set)));
                     }
                     resolve();
                     break;
                 case "hidden":
-                    var r = meta.settings.find(s => s.id === options.key);
+                    var r = settings.find(s => s.id === options.key);
                     if (r) {
                       r.hidden = options.value;
                       var set = {};
-                      set[sKey] = meta.settings;
+                      set[sKey] = settings;
                       chrome.storage.local.set(JSON.parse(JSON.stringify(set)));
                     }
                     resolve();

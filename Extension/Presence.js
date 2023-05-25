@@ -31,9 +31,6 @@ class Presence {
         console.log('######', presenceOptions, mCategory, reRegistered);
         this.clientId = presenceOptions.clientId;
 
-        if(mCategory === 'music') {
-            this.mode = 'passive';
-        }
 
         if(activePresence) {
             this._events = activePresence._events;
@@ -45,7 +42,14 @@ class Presence {
         if(50 > reRegistered) this.register();
     }
 
-    register() {
+    async register() {
+
+        const mode = await this.getSetting("mss_permanent");
+
+        if (mCategory === "music" || mode) {
+            this.mode = "passive";
+        }
+
         chrome.runtime.sendMessage(extensionId, { mode: this.mode }, function (response) {
             console.log('Presence registred', response)
         });
