@@ -74,11 +74,18 @@ async function registerNavigation(page, config, iframe) {
         return chrome.webNavigation.onCompleted.addListener(data => {
             const origin = new URL(data.url).origin+'/';
             console.log('[P]', 'Check Permissions', iframe ? page+' (iframe)': page, origin)
-            chrome.permissions.contains({ origins: [origin] }, perm => {
+            chrome.permissions.contains({ origins: [origin] }, async perm => {
+                if (iframe && !checkIfTabOriginIsAllowed(data.tabId)) return;
                 if (!perm) {
-                    if (iframe && !checkIfTabOriginIsAllowed(data.tabId)) return;
                     console.error('[P]', 'No Permission', origin);
                     addMissingRequest(page, origin, iframe);
+                    return;
+                } else {
+                    const config = await getConfig(page);
+                    if (!config.permissions.includes(origin)) {
+                        console.error("[P]", "Missing domain config", origin);
+                        addMissingRequest(page, origin, iframe);
+                    }
                     return;
                 }
             });
@@ -100,6 +107,15 @@ chrome.storage.onChanged.addListener(async function (changes, namespace) {
                 await setBadge();
                 const diff = storageChange.newValue.filter(x => !storageChange.oldValue.includes(x));
                 if (diff.length) await reloadTabsByOrigin(diff);
+                break;
+            case 'mv3_permissions':
+                 await registerPages(await getActivePages());
+
+                const oldJson = storageChange.oldValue.map(JSON.stringify);
+                const newJson = storageChange.newValue.map(JSON.stringify);
+                const diff_permissions = newJson.filter(x => !oldJson.includes(x));
+                const pages = diff_permissions.map(el => JSON.parse(el).page);
+                if (pages.length) await reloadTabsByOrigin(pages);
                 break;
             case 'mv3_missingPermissions':
                 await setBadge();
