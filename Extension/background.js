@@ -156,7 +156,7 @@ function getIframeFilter() {
 
 function iframeNavigationListener(data) {
     console.log('####Iframe####', data);
-    chrome.tabs.get(data.tabId, (tab) => {
+    chrome.tabs.get(data.tabId, async (tab) => {
         const iframeOrigin = new URL(tab.url).origin + "/";
         console.log("Iframe root origin", iframeOrigin);
         const page = findPageWithOrigin(iframeOrigin);
@@ -169,21 +169,23 @@ function iframeNavigationListener(data) {
             console.log('Do not inject iframe on root page');
             return;
         }
-        chrome.tabs.executeScript(data.tabId, {
-            file: "Iframe.js",
-            frameId: data.frameId,
-        });
-        chrome.tabs.executeScript(data.tabId, {
-            file: "Pages/" + page.service + "/iframe.js",
-            frameId: data.frameId,
-        });
+        await loadScriptPromise(
+            data.tabId,
+            data.frameId,
+            "Iframe.js"
+        );
+        await loadScriptPromise(
+            data.tabId,
+            data.frameId,
+            "Pages/" + page.service + "/iframe.js"
+        );
     })
 }
 
 function navigationListener(data) {
     console.log('####Content####', data);
     const permConfig = { origins: [new URL(data.url).origin+'/'] };
-    chrome.permissions.contains(permConfig, perm => {
+    chrome.permissions.contains(permConfig, async perm => {
         console.log('Permission', perm);
         if (!perm) {
 
@@ -208,21 +210,24 @@ function navigationListener(data) {
             return;
         }
 
-        chrome.tabs.executeScript(data.tabId, {
-            file: "Presence.js",
-            frameId: data.frameId,
-        });
-        chrome.tabs.executeScript(data.tabId, {
-            file: "Pages/"+page.service+"/index.js",
-            frameId: data.frameId,
-        });
+        await loadScriptPromise(
+            data.tabId,
+            data.frameId,
+            "Presence.js"
+        );
+        await loadScriptPromise(
+            data.tabId,
+            data.frameId,
+            "Pages/" + page.service + "/index.js"
+        );
 
         if (page.readLogs) {
             console.log('Inject log reader');
-            chrome.tabs.executeScript(data.tabId, {
-                file: "logReader.js",
-                frameId: data.frameId,
-            });
+            await loadScriptPromise(
+                data.tabId,
+                data.frameId,
+                "logReader.js"
+            );
         }
     });
 }
@@ -359,6 +364,21 @@ function serviceSettings(options) {
             }
         });
     })
+}
+
+function loadScriptPromise(tabId, frameId, file) {
+    return new Promise((resolve, reject) => {
+        chrome.tabs.executeScript(
+            tabId,
+            {
+                file,
+                frameId,
+            },
+            (res) => {
+                resolve(res);
+            }
+        );
+    });
 }
 
 checkForMissingPermissions();
