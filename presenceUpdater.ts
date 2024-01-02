@@ -63,7 +63,7 @@ const readFile = (path: string): string =>
 
     compile();
 
-    const compiledPresences = await Promise.all(
+    const compiledPresences = (await Promise.all(
       dbDiff.map(async (file) => {
         let metadata = file[0];
         const path = file[1],
@@ -141,13 +141,14 @@ const readFile = (path: string): string =>
 
         return resJson;
       })
-    );
+    )).filter((el) => el !== null);
 
     console.log("\nUPDATING...\n");
 
     try {
       const metad: any[] = [];
 
+      if(compiledPresences.length < 100) throw `Less than 100 Presences (${compiledPresences.length})`;
 
       compiledPresences.forEach((el) => {
         console.log(`./Extension/Pages/${el.name}/index.js`);
