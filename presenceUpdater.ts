@@ -1,21 +1,16 @@
 const regExpReplacement = {
   'Amazon': '([a-z0-9-]+[.])*amazon([.][a-z]+)+[/]',
   'eggsy.codes': 'eggsy[.]xyz',
+  'IDLIX': '(((tv([0-9]?))?(vip)?[.])?id(f)?lix(official)?[.][a-z]{2,6})',
 }
 
 
 import "source-map-support/register";
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync } from "fs";
 import { sync as glob } from "glob";
-import {
-  CompilerOptions,
-  createProgram,
-  flattenDiagnosticMessageText,
-  getPreEmitDiagnostics
-} from "typescript";
 import { valid } from "semver";
-import { join, normalize, resolve as rslv, sep } from "path";
+import { execSync } from "child_process";
 
 let exitCode = 0,
   appCode = 0;
@@ -34,61 +29,10 @@ const readFile = (path: string): string =>
   writeJS = (path: string, code: string): void =>
     writeFileSync(path, code, { encoding: "utf8", flag: "w" }),
   readJson = <T>(jsonPath: string): T => JSON.parse(readFile(jsonPath)) as T,
-  compileFile = async (
-    fileNames: string[],
-    options: CompilerOptions
-  ): Promise<void> => {
-    // @ts-ignore
-    options.module = 'CommonJS';
-    delete options.moduleResolution;
-    const program = createProgram(fileNames, options),
-      emitResult = program.emit(),
-      allDiagnostics = getPreEmitDiagnostics(program).concat(
-        emitResult.diagnostics
-      );
-
-    allDiagnostics.forEach((diagnostic) => {
-      if (diagnostic.file) {
-        const {
-            line,
-            character
-          } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!),
-          message = flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-        console.log(
-          `${diagnostic.file.fileName} (${line + 1},${
-            character + 1
-          }): ${message}`
-        );
-      } else {
-        console.log(flattenDiagnosticMessageText(diagnostic.messageText, "\n"));
-      }
-    });
-
-    if (emitResult.emitSkipped) appCode = 1;
-  },
-  compile = async (filesToCompile: string[]): Promise<void> => {
-    const premidTypings = join(__dirname, 'Presences', "@types", "premid", "index.d.ts"),
-      { compilerOptions: baseTsConfig } = readJson<{
-        compilerOptions: CompilerOptions;
-      }>(rslv(__dirname, "./Presences/tsconfig.json"));
-
-    for (const fileToCompile of filesToCompile) {
-      const normalizedPath = normalize(fileToCompile).split(sep);
-      normalizedPath.pop();
-
-      const { compilerOptions: presenceConfig } = readJson<{
-          compilerOptions: CompilerOptions;
-        }>(rslv(normalizedPath.join(sep), "./../../../tsconfig.json")),
-        tsConfig: CompilerOptions = {
-          ...baseTsConfig,
-          ...presenceConfig,
-          outDir: rslv(normalizedPath.join(sep), "dist"),
-          noEmitOnError: false,
-          types: ["node"]
-        };
-
-      compileFile([fileToCompile, premidTypings], tsConfig);
-    }
+  compile = () => {
+    copyFileSync('./overwrite/compileChanged.ts', './Presences/tools/auto/compileChanged.ts');
+    execSync("npm install", { cwd: './Presences', stdio: 'inherit' });
+    execSync("npm run compile", { cwd: './Presences', stdio: 'inherit' });
   },
   main = async (): Promise<void> => {
     if (!process.env.GITHUB_ACTIONS)
@@ -118,11 +62,12 @@ const readFile = (path: string): string =>
 
     if (dbDiff.length > 0) console.log("\nCOMPILING...\n");
 
-    const compiledPresences = await Promise.all(
+    compile();
+
+    const compiledPresences = (await Promise.all(
       dbDiff.map(async (file) => {
         let metadata = file[0];
         const path = file[1],
-          sources = glob(`${path}*.ts`),
           metadataFile = readJson<Metadata>(`${path}metadata.json`);
 
         console.log('Getting', path);
@@ -156,12 +101,7 @@ const readFile = (path: string): string =>
           return null;
         }
 
-        await compile(sources);
-
-
-
-
-        if (!existsSync(`${path}dist/presence.js`)) {
+        if (!existsSync(`${path}presence.js`)) {
           const meta = metadataFile.service ? metadataFile.service : path;
           console.error(`Error. ${meta} did not compile, skipping...`);
           appCode = 1;
@@ -174,18 +114,18 @@ const readFile = (path: string): string =>
             metadata.service
           )}/`,
           metadata,
-          presenceJs: readFileSync(`${path}dist/presence.js`, "utf-8")
+          presenceJs: readFileSync(`${path}presence.js`, "utf-8")
         };
 
-        if (metadata.iframe && existsSync(`${path}dist/iframe.js`))
-          resJson.iframeJs = readFileSync(`${path}dist/iframe.js`, "utf-8");
-        else if (metadata.iframe && !existsSync(`${path}dist/iframe.js`)) {
+        if (metadata.iframe && existsSync(`${path}iframe.js`))
+          resJson.iframeJs = readFileSync(`${path}iframe.js`, "utf-8");
+        else if (metadata.iframe && !existsSync(`${path}iframe.js`)) {
           console.error(
             `Error. ${metadata.service} explicitly includes iframe but no such file was found, skipping...`
           );
           appCode = 1;
           return null;
-        } else if (!metadata.iframe && existsSync(`${path}dist/iframe.js`)) {
+        } else if (!metadata.iframe && existsSync(`${path}iframe.js`)) {
           console.error(
             `Error. ${metadata.service} contains an iframe file but does not include it in the metadata, skipping...`
           );
@@ -202,14 +142,15 @@ const readFile = (path: string): string =>
 
         return resJson;
       })
-    );
+    )).filter((el) => el !== null);
 
     console.log("\nUPDATING...\n");
 
     try {
       const metad: any[] = [];
 
-      if(compiledPresences.length < 100) throw 'Less than 100 Presences';
+      if(compiledPresences.length < 100) throw `Less than 100 Presences (${compiledPresences.length})`;
+
       compiledPresences.forEach((el) => {
         if (!el) return;
         console.log(`./Extension/Pages/${el.name}/index.js`);
