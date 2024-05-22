@@ -1,6 +1,7 @@
 const regExpReplacement = {
   'Amazon': '([a-z0-9-]+[.])*amazon([.][a-z]+)+[/]',
   'eggsy.codes': 'eggsy[.]xyz',
+  'IDLIX': '(((tv([0-9]?))?(vip)?[.])?id(f)?lix(official)?[.][a-z]{2,6})',
 }
 
 
