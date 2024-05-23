@@ -351,20 +351,11 @@ setTimeout(() => {
 function checkForIframes() {
     if (typeof checkIframe !== 'undefined' && checkIframe) {
         frames = document.getElementsByTagName("iframe");
-        console.log('Frames found', frames.length);
-        var urlsD = [];
-        for (i = 0; i < frames.length; ++i) {
-            let frame = frames[i];
-            if (frame.src) {
-                urlsD.push(frame.src);
-            }
-        }
-        console.log("domains", serviceNameWrap, urlsD);
+        console.log('Frames found', frames.length, serviceNameWrap);
         chrome.runtime.sendMessage({
             type: "iframeDomains",
             data: {
                 page: serviceNameWrap,
-                domains: urlsD,
             },
         });
     }

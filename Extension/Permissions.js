@@ -35,8 +35,8 @@ export async function getConfig(page) {
     const permissions = [];
     const found = pages.find(p => p.service === page);
     const iframe = {
-        navigation: [],
         matches: [],
+        regex: [],
     }
     let customPermissions = [];
     if (found) {
@@ -44,8 +44,8 @@ export async function getConfig(page) {
 
         if (found.regExp) navigation.push({urlMatches: found.regExp});
         if (found.regExp && found.regExp.includes('[.]html')) navigation.push({ originAndPathMatches: found.regExp });
-        if (found.iFrameRegExp) iframe.navigation.push({urlMatches: found.iFrameRegExp});
-        if (found.iFrameRegExp && found.iFrameRegExp.includes('[.]html')) iframe.navigation.push({ originAndPathMatches: found.iFrameRegExp });
+        if (found.iFrameRegExp) iframe.regex.push(found.iFrameRegExp);
+        if (found.iframe && !found.iFrameRegExp) iframe.regex.push('.*');
         if (Array.isArray(found.url)) {
             found.url.forEach(el => {
                 matches.push( '*://' + el + '/*');
@@ -122,6 +122,5 @@ export function hasMissingRequests() {
 
 function checkIfUrl(url) {
     const urlObj = new URL(url);
-    console.log(url, urlObj);
     return Boolean(urlObj.hostname);
 }

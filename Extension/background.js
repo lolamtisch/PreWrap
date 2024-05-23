@@ -31,7 +31,6 @@ async function registerPages(activePages) {
             await registerScript(page, config);
             await registerIframe(page, config);
             await registerNavigation(page, config, false);
-            await registerNavigation(page, config, true);
 
         } catch (e) {
             console.error(`Could not register: ${page} |`, e);
@@ -68,25 +67,24 @@ async function registerIframe(page, config) {
     }]);
 }
 
-async function registerNavigation(page, config, iframe) {
-    const nav = iframe ? config.iframe.navigation : config.navigation;
+async function registerNavigation(page, config) {
+    const nav = config.navigation;
     if (nav.length) {
         return chrome.webNavigation.onCompleted.addListener(data => {
             const urlObj = new URL(data.url);
             if (!urlObj.hostname) return;
             const origin = urlObj.origin+'/';
-            console.log('[P]', 'Check Permissions', iframe ? page+' (iframe)': page, origin)
+            console.log('[P]', 'Check Permissions', page, origin)
             chrome.permissions.contains({ origins: [origin] }, async perm => {
-                if (iframe && !checkIfTabOriginIsAllowed(data.tabId)) return;
                 if (!perm) {
                     console.error('[P]', 'No Permission', origin);
-                    addMissingRequest(page, origin, iframe);
+                    addMissingRequest(page, origin, false);
                     return;
                 } else {
                     const config = await getConfig(page);
                     if (!config.permissions.includes(origin)) {
                         console.error("[P]", "Missing domain config", origin);
-                        addMissingRequest(page, origin, iframe);
+                        addMissingRequest(page, origin, false);
                     }
                     return;
                 }
@@ -143,7 +141,7 @@ chrome.permissions.onRemoved.addListener(
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     switch (request.type) {
         case "iframeDomains":
-            checkIframeDomains(request.data.page, request.data.domains);
+            if (sender.tab && sender.tab.id) checkIframeDomains(request.data.page, sender.tab.id);
             sendResponse();
             break;
         case "iframeData":
@@ -255,17 +253,24 @@ function checkIfDomain(meta, url) {
     return res;
 }
 
-function checkIframeDomains(page, domains) {
-    console.log('Iframes', page, domains);
-    if(!domains.length) return;
-    domains.map(domain => new URL(domain).origin + "/").forEach(origin => {
-        chrome.permissions.contains({ origins: [origin] }, (perm) => {
-            if (!perm) {
-                console.error("[P]", "No Permission", origin);
-                addMissingRequest(page, origin, true);
-                return;
-            }
-        });
+async function checkIframeDomains(page, tabId) {
+    const frames = await chrome.webNavigation.getAllFrames({ tabId: tabId });
+    console.log('Check Iframe Domains', frames);
+    if(!frames.length) return;
+    frames.forEach(async frame => {
+        if (frame.frameType !== 'sub_frame') return;
+        const urlObj = new URL(frame.url);
+        if (!urlObj.hostname) return;
+        const origin = urlObj.origin + "/";
+        const config = await getConfig(page);
+        if (config.iframe) {
+
+            const handled = config.iframe.matches.find(m => frame.url.includes(m.replace(/\*$/i, '')));
+            if (handled) return;
+            if (!new RegExp(config.iframe.regExp).test(frame.url)) return;
+            console.error("[P]", "No Permission", origin);
+            addMissingRequest(page, origin, true);
+        }
     });
 }
 
