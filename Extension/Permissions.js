@@ -103,6 +103,7 @@ export function addMissingRequest(page, origin, iframe) {
         }
         if (cur.find((el) => el.origin === origin)) return;
         cur.push({ origin: origin, page: page, iframe: iframe });
+        cur = cur.filter((el) => checkIfUrl(el.origin));
         chrome.storage.local.set({"mv3_missingPermissions": cur});
     });
 }
@@ -117,4 +118,10 @@ export function hasMissingRequests() {
             resolve(cur.length > 0);
         });
     })
+}
+
+function checkIfUrl(url) {
+    const urlObj = new URL(url);
+    console.log(url, urlObj);
+    return Boolean(urlObj.hostname);
 }

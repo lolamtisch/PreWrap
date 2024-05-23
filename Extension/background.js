@@ -72,7 +72,9 @@ async function registerNavigation(page, config, iframe) {
     const nav = iframe ? config.iframe.navigation : config.navigation;
     if (nav.length) {
         return chrome.webNavigation.onCompleted.addListener(data => {
-            const origin = new URL(data.url).origin+'/';
+            const urlObj = new URL(data.url);
+            if (!urlObj.hostname) return;
+            const origin = urlObj.origin+'/';
             console.log('[P]', 'Check Permissions', iframe ? page+' (iframe)': page, origin)
             chrome.permissions.contains({ origins: [origin] }, async perm => {
                 if (iframe && !checkIfTabOriginIsAllowed(data.tabId)) return;
