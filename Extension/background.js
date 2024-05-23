@@ -38,8 +38,6 @@ async function registerPages(activePages) {
     }
 }
 
-var originCache = [];
-
 async function registerScript(page, config) {
     const js = [`./Presence.js`, `./Pages/${page}/index.js`];
 
@@ -186,72 +184,9 @@ async function reloadTabsByOrigin(pages) {
     });
 }
 
-async function checkIfTabOriginIsAllowed(tabId) {
-    return new Promise((resolve, reject) => {
-        chrome.tabs.get(tabId, (tab) => {
-            const origin = new URL(tab.url).origin+'/';
-            chrome.permissions.contains({ origins: [origin] }, perm => {
-                resolve(perm);
-                if (!perm) {
-                    console.error('[P]', 'Origin not allowed', origin);
-                }
-                resolve(perm);
-            });
-        });
-    })
-}
-
-function iframeNavigationListener(data) {
-    console.log('####Iframe####', data);
-    chrome.tabs.get(data.tabId, (tab) => {
-        const iframeOrigin = new URL(tab.url).origin + "/";
-        console.log("Iframe root origin", iframeOrigin);
-        const page = findPageWithOrigin(iframeOrigin);
-        if (!page) {
-            console.error('Iframe No Page found for', iframeOrigin);
-            return
-        }
-        console.log("Inject Iframe", page.service);
-        if (!data.frameId) {
-            console.log('Do not inject iframe on root page');
-            return;
-        }
-        chrome.tabs.executeScript(data.tabId, {
-            file: "Iframe.js",
-            frameId: data.frameId,
-        });
-        chrome.tabs.executeScript(data.tabId, {
-            file: "Pages/" + page.service + "/iframe.js",
-            frameId: data.frameId,
-        });
-    })
-}
-
 chrome.action.onClicked.addListener(async tab => {
     await setBadge();
 });
-
-function findPageWithOrigin(origin) {
-    if (originCache[origin]) return origin;
-    return pages.filter(page => activePages.includes(page.service)).find(page => checkIfDomain(page, origin));
-}
-
-function checkIfDomain(meta, url) {
-    let res;
-    if (typeof meta.regExp !== "undefined") {
-        res = url.match(new RegExp(meta.regExp));
-
-        if (res === null) return false;
-        return res.length > 0;
-    }
-
-    if (Array.isArray(meta.url)) {
-        res = meta.url.filter(mUrl => new URL(url).hostname === mUrl).length > 0;
-    } else {
-        res = new URL(url).hostname === meta.url;
-    }
-    return res;
-}
 
 async function checkIframeDomains(page, tabId) {
     const frames = await chrome.webNavigation.getAllFrames({ tabId: tabId });
