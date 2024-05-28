@@ -59,6 +59,7 @@ export async function getConfig(page) {
         }
 
         for (const custom of customPermissions) {
+            if (custom.blocked) continue;
             permissions.push(custom.origin);
             if (custom.iframe) {
                 iframe.matches.push(custom.origin.replace(/\/$/g, '/*'));
@@ -102,7 +103,7 @@ export function addMissingRequest(page, origin, iframe) {
             cur = res.mv3_missingPermissions;
         }
         if (cur.find((el) => el.origin === origin)) return;
-        cur.push({ origin: origin, page: page, iframe: iframe });
+        cur.push({ origin: origin, page: page, iframe: iframe, blocked: false });
         cur = cur.filter((el) => checkIfUrl(el.origin));
         chrome.storage.local.set({"mv3_missingPermissions": cur});
     });

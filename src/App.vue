@@ -40,7 +40,7 @@
                 <div v-if="missingIframes.length">
                     <h3><span>Iframes</span></h3>
                     <div v-for="iframe in missingIframes" :key="iframe" class="permP">
-                        <div>{{iframe.page}}</div><div>{{iframe.origin}}</div> <span @click="blockIframe(iframe)">X</span>
+                        <div>{{iframe.page}}</div><div>{{iframe.origin}}</div> <span @click="blockPermission(iframe)">X</span>
                     </div>
                 </div>
 
@@ -113,14 +113,6 @@
                         </div>
                     </div>
                 </div>
-                <div class="perm box" v-if="sync.allowedIframes.length" style="border: 0px; padding-left: 0; padding-right: 0;">
-                    <div>
-                        <h3><span>Iframes</span></h3>
-                        <div v-for="iframe in sync.allowedIframes" :key="iframe" class="permP">
-                            {{getHostname(iframe)}} <span @click="blockIframe(iframe)">X</span>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
         <div class="section" v-if="active==='blocked'">
@@ -131,7 +123,7 @@
                 <div v-for="page in customDomains" :key="page.page" class="perm box">
                     {{ page.page }}
                     <div v-for="origin in page.origins" :key="origin" class="permP">
-                      {{origin.iframe ? 'Iframe:' : ''}} {{ origin.origin }}
+                      {{origin.blocked ? 'Blocked:' : ''}} {{origin.iframe ? 'Iframe:' : ''}} {{ origin.origin }}
                       <span @click="removeCustomDomain(origin)">X</span>
                   </div>
                 </div>
@@ -186,9 +178,9 @@ export default {
             currentTabId: 0,
             sync: {
                 mv3_permissions: [],
-                allowedIframes: [],
-                missingIframes: [],
-                blockedIframes: [],
+            },
+            local: {
+                mv3_missingPermissions: [],
             }
         };
     },
@@ -229,12 +221,12 @@ export default {
             ) {
                 cur = res.mv3_missingPermissions;
             }
-            this.missingPermissions = cur;
+            this.local.mv3_missingPermissions = cur;
             chrome.storage.onChanged.addListener(function (changes, namespace) {
                 for (var key in changes) {
                     var storageChange = changes[key];
                     if (namespace === "local" && key === "mv3_missingPermissions") {
-                        this.missingPermissions = storageChange.newValue;
+                        this.local.mv3_missingPermissions = storageChange.newValue;
                     }
                 }
             });
@@ -264,6 +256,12 @@ export default {
                 chrome.storage.sync.set(value);
             },
             deep: true
+        },
+        local: {
+            handler(value) {
+                chrome.storage.local.set(value);
+            },
+            deep: true
         }
     },
     computed: {
@@ -278,10 +276,10 @@ export default {
             });
         },
         missingOrigins() {
-            return this.missingPermissions.filter((p) => !p.iframe);
+            return this.local.mv3_missingPermissions.filter((p) => !p.iframe);
         },
         missingIframes() {
-            return this.missingPermissions.filter((p) => p.iframe);
+            return this.local.mv3_missingPermissions.filter((p) => p.iframe);
         },
         customDomains() {
           var ac = this.activePages.pages;
@@ -303,7 +301,7 @@ export default {
                     cur = res.mv3_permissions;
                 }
 
-                for (const perm of this.missingPermissions ) {
+                for (const perm of this.local.mv3_missingPermissions ) {
                     if (cur.find((el) => el.origin === perm.origin)) continue;
                     cur.push(perm);
                 }
@@ -332,14 +330,11 @@ export default {
                 this.updatePermissions();
             }
         },
-        blockIframe(origin) {
-            this.sync.missingIframes = this.sync.missingIframes.filter(el => el !== origin);
-            this.sync.allowedIframes = this.sync.allowedIframes.filter(el => el !== origin);
-            if (!this.sync.blockedIframes.includes(origin)) this.sync.blockedIframes.push(origin);
-        },
-        deBlockIframe(origin) {
-            this.sync.blockedIframes = this.sync.blockedIframes.filter(el => el !== origin);
-            if (!this.sync.missingIframes.includes(origin)) this.sync.missingIframes.push(origin);
+        blockPermission(perm) {
+            perm.blocked = true;
+            this.sync.mv3_permissions = this.sync.mv3_permissions.filter((el) => el.origin !== perm.origin || el.page !== perm.page);
+            this.sync.mv3_permissions.push(perm);
+            this.local.mv3_missingPermissions = this.local.mv3_missingPermissions.filter((el) => el.origin !== perm.origin || el.page !== perm.page);
         },
         updateSetting(meta, option, value) {
             chrome.runtime.sendMessage({
