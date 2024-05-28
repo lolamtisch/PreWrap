@@ -97,12 +97,16 @@ export async function getPageCustomPermissions(page) {
 }
 
 export function addMissingRequest(page, origin, iframe) {
-    chrome.storage.local.get("mv3_missingPermissions", (res) => {
+    chrome.storage.local.get("mv3_missingPermissions", async (res) => {
         var cur = [];
         if (res.mv3_missingPermissions && Object.values(res.mv3_missingPermissions).length) {
             cur = res.mv3_missingPermissions;
         }
-        if (cur.find((el) => el.origin === origin)) return;
+        if (cur.find((el) => el.origin === origin && el.page === page && el.iframe === iframe)) return;
+
+        const customDomains = await getPageCustomPermissions(page);
+        if (customDomains.find((el) => el.origin === origin && el.page === page && el.iframe === iframe)) return;
+
         cur.push({ origin: origin, page: page, iframe: iframe, blocked: false });
         cur = cur.filter((el) => checkIfUrl(el.origin));
         chrome.storage.local.set({"mv3_missingPermissions": cur});
