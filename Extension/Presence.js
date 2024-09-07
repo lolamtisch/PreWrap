@@ -86,7 +86,13 @@ class Presence {
         var activity = this.getActivity();
         console.log("activity", activity);
         if (!activity || !Object.keys(activity).length) return {};
-        if (!focus && this.mode === 'passive' && !this.playback && activity.smallImageKey !== 'play') return {};
+        if (
+            !focus &&
+            this.mode === "passive" &&
+            !this.playback &&
+            !activity.smallImageKey.includes('play')
+        )
+            return {};
         return {
             clientId: this.clientId,
             presence: this.getActivity(),
