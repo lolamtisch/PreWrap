@@ -1,60 +1,60 @@
-const request = require('request');
-const fs = require('fs')
+const fs = require('fs');
+const path = require('path');
+const { sync: glob } = require('glob');
 
 console.log('Generate locale');
 
 main();
 
 function main() {
-    let = langRes = {};
+    let langRes = {};
 
-    getFolder('./Localization/src/Extension').forEach(el => {
-        const tLang = readFile('./Localization/src/Extension/'+el);
-        langRes = {...langRes, ...tLang};
-    });
-
-    getFolder('./Localization/src/Presence').forEach(el => {
-        const tLang = readFile('./Localization/src/Presence/'+el);
+    getLocaleFiles().forEach(file => {
+        const tLang = readFile(file);
         langRes = {...langRes, ...tLang};
     });
 
     writeObj(langRes);
 }
 
-function getFolder(path) {
-    return fs.readdirSync(path);
+function getLocaleFiles() {
+    const ignoredFiles = new Set([
+        'metadata.json',
+        'package.json',
+        'package-lock.json',
+        'tsconfig.json'
+    ]);
+    const files = [
+        './Activities/websites/general.json',
+        ...glob('./Activities/websites/*/*/*.json'),
+        ...glob('./Activities/websites/*/*/v*/*.json')
+    ];
+
+    return [...new Set(files)].filter(file => {
+        const normalized = file.replace(/\\/g, '/');
+        if (normalized.includes('/dist/')) return false;
+        return !ignoredFiles.has(path.basename(file));
+    });
 }
 
-function readFile(path) {
-    const data = fs.readFileSync(path, 'utf8');
+function readFile(file) {
+    const data = fs.readFileSync(file, 'utf8');
     const json = JSON.parse(data);
     const res = {};
     for (const el in json) {
-        res[el] = json[el].message;
+        if (json[el] && typeof json[el].message === 'string') {
+            res[el] = json[el].message;
+        }
     }
 
     return res;
 }
 
 function writeObj(obj) {
-    console.log(obj);
+    console.log(`Generated ${Object.keys(obj).length} locale strings`);
     const content = `
         var language = ${JSON.stringify(obj)};
     `;
+    fs.mkdirSync('./Extension/Pages', { recursive: true });
     fs.writeFileSync('./Extension/Pages/locale.js', content);
-}
-
-async function getJson(url) {
-	return new Promise((resolve, reject) => {
-		request({url: url}, function (error, response, body) {
-			if(error) {
-				console.error('error:', error);
-				reject(error);
-				return;
-			}
-			if(response && response.statusCode === 200) {
-				resolve(JSON.parse(body));
-			}
-		});
-	})
 }

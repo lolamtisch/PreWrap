@@ -1,4 +1,4 @@
-const regExpReplacement = {
+const regExpReplacement: Record<string, string> = {
   'Amazon': '([a-z0-9-]+[.])*amazon([.][a-z]+)+[/]',
   'eggsy.codes': 'eggsy[.]xyz',
   'IDLIX': '(((tv([0-9]?))?(vip)?[.])?id(f)?lix(official)?[.][a-z]{2,6})',
@@ -8,13 +8,17 @@ const regExpReplacement = {
 
 import "source-map-support/register";
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { dirname } from "path";
 import { sync as glob } from "glob";
 import { valid } from "semver";
 import { execSync } from "child_process";
 
-let exitCode = 0,
-  appCode = 0;
+const activitiesRoot = "./Activities",
+  metadataGlobs = [
+    `${activitiesRoot}/websites/*/*/metadata.json`,
+    `${activitiesRoot}/websites/*/*/v*/metadata.json`,
+  ];
 
 function isValidJSON(text: string): boolean {
   try {
@@ -31,9 +35,37 @@ const readFile = (path: string): string =>
     writeFileSync(path, code, { encoding: "utf8", flag: "w" }),
   readJson = <T>(jsonPath: string): T => JSON.parse(readFile(jsonPath)) as T,
   compile = () => {
-    copyFileSync('./overwrite/compileChanged.ts', './Presences/tools/auto/compileChanged.ts');
-    execSync("npm install", { cwd: './Presences', stdio: 'inherit' });
-    execSync("npm run compile", { cwd: './Presences', stdio: 'inherit' });
+    execSync("npm run prepare", { cwd: activitiesRoot, stdio: "inherit" });
+
+    try {
+      execSync("node ./node_modules/pmd/dist/index.js build --all --kill=false", {
+        cwd: activitiesRoot,
+        stdio: "inherit",
+      });
+    } catch {
+      console.error(
+        "Activity build completed with errors; continuing with available dist output..."
+      );
+    }
+  },
+  activityPathFromMetadata = (metadataPath: string): string =>
+    `${dirname(metadataPath).replace(/\\/g, "/")}/`,
+  selectLatestActivities = (
+    activities: Array<[Metadata, string]>
+  ): Array<[Metadata, string]> => {
+    const latest = new Map<string, [Metadata, string]>();
+
+    activities.forEach((activity) => {
+      const [metadata] = activity,
+        current = latest.get(metadata.service),
+        apiVersion = metadata.apiVersion || 1,
+        currentApiVersion = current ? current[0].apiVersion || 1 : 0;
+
+      if (!current || apiVersion >= currentApiVersion)
+        latest.set(metadata.service, activity);
+    });
+
+    return [...latest.values()];
   },
   main = async (): Promise<void> => {
     if (!process.env.GITHUB_ACTIONS)
@@ -43,43 +75,43 @@ const readFile = (path: string): string =>
 
     console.log("\nFETCHING...\n");
 
-    const presences: Array<[Metadata, string]> = glob("./Presences/{websites,programs}/*/*/")
-        .filter((pF) => existsSync(`${pF}/metadata.json`))
-        .map((pF) => {
-          const file = readFile(`${pF}/metadata.json`);
+    const activities: Array<[Metadata, string]> = metadataGlobs
+        .flatMap((pattern) => glob(pattern))
+        .map((metadataPath) => {
+          const activityPath = activityPathFromMetadata(metadataPath),
+            file = readFile(metadataPath);
+
           if (isValidJSON(file)) {
-            const data = JSON.parse(file);
+            const data = JSON.parse(file) as Metadata;
             delete data["$schema"];
-            return [data, pF];
+            return [data, activityPath] as [Metadata, string];
           } else {
             console.error(
-              `Error. Folder ${pF} does not include a valid metadata file, skipping...`
+              `Error. Folder ${activityPath} does not include a valid metadata file, skipping...`
             );
-            exitCode = 1;
             return null;
           }
-        }),
-      dbDiff = presences;
+        })
+        .filter((activity): activity is [Metadata, string] => activity !== null),
+      dbDiff = selectLatestActivities(activities);
 
     if (dbDiff.length > 0) console.log("\nCOMPILING...\n");
 
     compile();
 
-    const compiledPresences = (await Promise.all(
+    const compiledActivities = (await Promise.all(
       dbDiff.map(async (file) => {
         let metadata = file[0];
         const path = file[1],
+          distPath = `${path}dist/`,
           metadataFile = readJson<Metadata>(`${path}metadata.json`);
 
         console.log('Getting', path);
-
-        appCode = 0;
 
         if (!metadata && !metadataFile) {
           console.error(
             `Error. No metadata was found for ${path}, skipping...`
           );
-          appCode = 1;
           return null;
         } else if (!metadata && metadataFile) metadata = metadataFile;
 
@@ -98,14 +130,12 @@ const readFile = (path: string): string =>
           console.error(
             `Error. ${meta} does not include a valid metadata file/version, skipping...`
           );
-          appCode = 1;
           return null;
         }
 
-        if (!existsSync(`${path}presence.js`)) {
+        if (!existsSync(`${distPath}presence.js`)) {
           const meta = metadataFile.service ? metadataFile.service : path;
           console.error(`Error. ${meta} did not compile, skipping...`);
-          appCode = 1;
           return null;
         }
 
@@ -115,67 +145,55 @@ const readFile = (path: string): string =>
             metadata.service
           )}/`,
           metadata,
-          presenceJs: readFileSync(`${path}presence.js`, "utf-8")
+          presenceJs: readFileSync(`${distPath}presence.js`, "utf-8")
         };
 
-        if (metadata.iframe && existsSync(`${path}iframe.js`))
-          resJson.iframeJs = readFileSync(`${path}iframe.js`, "utf-8");
-        else if (metadata.iframe && !existsSync(`${path}iframe.js`)) {
+        if (metadata.iframe && existsSync(`${distPath}iframe.js`))
+          resJson.iframeJs = readFileSync(`${distPath}iframe.js`, "utf-8");
+        else if (metadata.iframe && !existsSync(`${distPath}iframe.js`)) {
           console.error(
             `Error. ${metadata.service} explicitly includes iframe but no such file was found, skipping...`
           );
-          appCode = 1;
           return null;
-        } else if (!metadata.iframe && existsSync(`${path}iframe.js`)) {
+        } else if (!metadata.iframe && existsSync(`${distPath}iframe.js`)) {
           console.error(
             `Error. ${metadata.service} contains an iframe file but does not include it in the metadata, skipping...`
           );
-          appCode = 1;
           return null;
-        }
-
-        if (appCode === 1) {
-          if (exitCode === 0) exitCode = 1;
-          metadata.service && metadata.service.length > 0
-            ? console.log(`❌ ${metadata.service}`)
-            : console.log(`❌ ${path}`);
         }
 
         return resJson;
       })
-    )).filter((el) => el !== null);
+    )).filter((el): el is DBdata => el !== null);
 
     console.log("\nUPDATING...\n");
 
     try {
       const metad: any[] = [];
 
-      if(compiledPresences.length < 100) throw `Less than 100 Presences (${compiledPresences.length})`;
+      if(compiledActivities.length < 100) throw `Less than 100 Activities (${compiledActivities.length})`;
 
-      compiledPresences.forEach((el) => {
-        console.log(`./Extension/Pages/${el.name}/index.js`);
+      compiledActivities.forEach((el) => {
+        const pageDir = el.name;
 
-        if (!existsSync(`./Extension/Pages/${el.name}`)) {
-          mkdirSync(`./Extension/Pages/${el.name}`);
+        console.log(`./Extension/Pages/${pageDir}/index.js`);
+
+        if (!existsSync(`./Extension/Pages/${pageDir}`)) {
+          mkdirSync(`./Extension/Pages/${pageDir}`, { recursive: true });
         }
 
-        var iframeMode = '';
-        if(el.metadata.iframe) iframeMode = 'var checkIframe = true;';
+        const iframeMode = el.metadata.iframe ? 'var checkIframe = true;' : '';
 
         writeJS(
-          `./Extension/Pages/${el.name}/index.js`,
-          //@ts-ignore
+          `./Extension/Pages/${pageDir}/index.js`,
           iframeMode+' var serviceNameWrap="'+el.name+'"; var mCategory = "' + el.metadata.category + '"; \n' + el.presenceJs
         );
-        if (el.iframeJs) writeJS(`./Extension/Pages/${el.name}/iframe.js`, el.iframeJs);
+        if (el.iframeJs) writeJS(`./Extension/Pages/${pageDir}/iframe.js`, el.iframeJs);
 
-        //@ts-ignore
         delete el.metadata.description;
-        delete el.metadata.version;
+        delete (el.metadata as Partial<Metadata>).version;
 
-        //@ts-ignore
         if (el.metadata.regExp) {
-          //@ts-ignore
           const reg = el.metadata.regExp;
           if (
             reg.includes('(?=') ||
@@ -187,7 +205,6 @@ const readFile = (path: string): string =>
               console.log('Incompatible regex found ' + reg);
               throw 'Incompatible regex found ' + reg;
             }
-            //@ts-ignore
             el.metadata.regExp = regExpReplacement[el.name];
           }
         }
@@ -198,7 +215,7 @@ const readFile = (path: string): string =>
       writeJS(`./Extension/Pages/pages.js`, 'var pages = '+JSON.stringify(metad, null, 2));
 
     } catch (err) {
-      console.error(err.stack || err);
+      console.error(err instanceof Error ? err.stack || err.message : err);
       process.exit(1);
     }
   };
@@ -216,10 +233,14 @@ process.on("uncaughtException", (err) => {
 });
 
 interface Metadata {
-  schema: string;
   service: string;
   version: string;
+  apiVersion?: number;
+  category?: string;
   iframe?: boolean;
+  regExp?: string;
+  description?: Record<string, string>;
+  [key: string]: any;
 }
 
 interface DBdata {

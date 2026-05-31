@@ -1,6 +1,5 @@
 presenceUpdater.js
-Presences/
-Localization/
+Activities/
 node_modules/
 Extension/Pages/
 Extension/webpack/
